@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>开卡注册 - 校园饭卡管理系统</title>
+  <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- 侧边栏 -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo-icon-small">&#127860;</div><span>饭卡管理</span>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">主要功能</div>
+        <a href="/index" class="nav-item"><span class="nav-icon">&#127967;</span><span>系统首页</span></a>
+        <a href="/register" class="nav-item active"><span class="nav-icon">&#128179;</span><span>开卡注册</span></a>
+        <a href="/recharge-consume" class="nav-item"><span class="nav-icon">&#128181;</span><span>充值/消费</span></a>
+        <a href="/loss-management" class="nav-item"><span class="nav-icon">&#128274;</span><span>挂失/解冻</span></a>
+        <a href="/transactions" class="nav-item"><span class="nav-icon">&#128200;</span><span>交易记录</span></a>
+        <div class="nav-section-title">系统管理</div>
+        <a href="/settings" class="nav-item"><span class="nav-icon">&#9881;</span><span>备份与设置</span></a>
+      </nav>
+    </aside>
+
+    <!-- 主内容区 -->
+    <main class="main-content">
+      <header class="topbar">
+        <div class="topbar-left">
+          <span class="breadcrumb"><strong>控制面板</strong> / 开卡注册</span>
+        </div>
+        <div class="topbar-right">
+          <div class="user-info"><div class="avatar">A</div><span style="font-size:13px;font-weight:500;">管理员</span></div>
+          <a href="/login" class="btn btn-default btn-sm" onclick="return confirm('确定要退出系统吗？')">&#10149; 退出</a>
+        </div>
+      </header>
+
+      <div class="page-content">
+        <!-- 页面标题 -->
+        <div class="page-header">
+          <h2>&#128179; 饭卡开卡注册</h2>
+          <p>为在校学生或教职工办理新的校园饭卡，填写基本信息即可完成开卡</p>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 420px 1fr; gap:24px; align-items:start;">
+          <!-- 注册表单卡片 -->
+          <div class="card">
+            <div class="card-header">
+              <h3>&#128221; 开卡信息录入</h3>
+            </div>
+            <div class="card-body">
+              <form id="registerForm" onsubmit="return handleRegister(event)">
+                <!-- 姓名 -->
+                <div class="form-group">
+                  <label for="regName"><span class="text-danger">*</span> 持卡人姓名</label>
+                  <input type="text" id="regName" class="form-control" placeholder="请输入真实姓名"
+                         required maxlength="20" minlength="2">
+                  <div class="form-error" id="regNameError"></div>
+                </div>
+
+                <!-- 类型选择 -->
+                <div class="form-group">
+                  <label for="regType"><span class="text-danger">*</span> 人员类型</label>
+                  <select id="regType" class="form-control" required>
+                    <option value="">-- 请选择人员类型 --</option>
+                    <option value="1">学生</option>
+                    <option value="2">教职工</option>
+                  </select>
+                  <div class="form-error" id="regTypeError"></div>
+                </div>
+
+                <!-- 卡号（可选） -->
+                <div class="form-group">
+                  <label for="regCardNo">自定义卡号 <small style="color:var(--text-hint);font-weight:normal;">(留空则自动生成)</small></label>
+                  <input type="text" id="regCardNo" class="form-control"
+                         placeholder="不填则自动生成，格式：yyyyMMdd + 序号"
+                         maxlength="50">
+                  <div class="form-error" id="regCardNoError"></div>
+                </div>
+
+                <!-- 初始余额 -->
+                <div class="form-group">
+                  <label for="regBalance">初始余额 (元) <small style="color:var(--text-hint);font-weight:normal;">(可选)</small></label>
+                  <input type="number" id="regBalance" class="form-control"
+                         placeholder="默认为 0.00 元" min="0" step="0.01" value="0">
+                  <div class="form-error" id="regBalanceError"></div>
+                </div>
+
+                <!-- 备注 -->
+                <div class="form-group">
+                  <label for="regRemark">备注信息</label>
+                  <textarea id="regRemark" class="form-control" rows="3"
+                            placeholder="可选填备注信息..." maxlength="200"></textarea>
+                </div>
+
+                <!-- 提示信息 -->
+                <div style="background:#e6f7ff;border:1px solid #91d5ff;border-radius:6px;padding:12px;font-size:13px;color:#0050b3;margin-bottom:20px;">
+                  &#8505; <strong>说明：</strong>开卡成功后，系统将自动分配唯一卡号。初始状态为<strong>正常</strong>，
+                  可立即使用充值、消费等功能。
+                </div>
+
+                <!-- 按钮 -->
+                <div style="display:flex;gap:12px;">
+                  <button type="submit" class="btn btn-primary btn-lg flex-1" id="regSubmitBtn">
+                    &#9989; 确认开卡
+                  </button>
+                  <button type="reset" class="btn btn-default btn-lg" onclick="clearRegErrors()">
+                    &#8634; 重置
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- 右侧：最近开卡记录 -->
+          <div>
+            <div class="card">
+              <div class="card-header">
+                <h3>&#128203; 最近开卡记录</h3>
+                <button class="btn btn-sm btn-default" onclick="loadRecentRegistrations()">刷新</button>
+              </div>
+              <div class="card-body" style="padding:0;">
+                <div class="table-wrapper">
+                  <table class="data-table">
+                    <thead>
+                      <tr><th>卡号</th><th>姓名</th><th>类型</th><th>初始余额</th><th>开卡时间</th><th>状态</th></tr>
+                    </thead>
+                    <tbody id="recentRegsBody">
+                      <tr><td colspan="6" class="empty-state"><div class="empty-icon">&#8987;</div><p>正在加载...</p></td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- 开卡统计 -->
+            <div class="card mt-16">
+              <div class="card-header"><h3>&#128202; 开卡统计</h3></div>
+              <div class="card-body">
+                <div class="stats-row" style="margin-bottom:0;">
+                  <div class="stat-card">
+                    <div class="stat-icon blue">&#128101;</div>
+                    <div class="stat-info">
+                      <div class="stat-value" id="regTotalCount">--</div>
+                      <div class="stat-label">总持卡人数</div>
+                    </div>
+                  </div>
+                  <div class="stat-card">
+                    <div class="stat-icon green">&#127891;</div>
+                    <div class="stat-info">
+                      <div class="stat-value" id="regStudentCount">--</div>
+                      <div class="stat-label">学生数</div>
+                    </div>
+                  </div>
+                  <div class="stat-card">
+                    <div class="stat-icon purple">&#128187;</div>
+                    <div class="stat-info">
+                      <div class="stat-value" id="regStaffCount">--</div>
+                      <div class="stat-label">教职工数</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Toast容器 -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script>
+    const API_BASE = '/api';
+
+    // ========== API 工具 ==========
+    async function apiGet(url) {
+      try { const r = await fetch(API_BASE+url); return await r.json(); }
+      catch(e) { console.error('GET失败:',url,e); return null; }
+    }
+
+    async function apiPost(url, body, isJson) {
+      try {
+        const opt = { method:'POST' };
+        if (isJson) {
+          opt.headers = {'Content-Type':'application/json'};
+          opt.body = JSON.stringify(body);
+        } else if (body && typeof body === 'object') {
+          opt.headers = {'Content-Type':'application/x-www-form-urlencoded'};
+          opt.body = Object.entries(body).map(([k,v])=>k+'='+encodeURIComponent(v)).join('&');
+        }
+        const r = await fetch(API_BASE+url, opt);
+        return await r.json();
+      } catch(e) { console.error('POST失败:',url,e); return null; }
+    }
+
+    function formatMoney(v){ return v==null?'0.00':Number(v).toFixed(2); }
+    function formatDate(dt){
+      if(!dt) return '--';
+      return new Date(dt).toLocaleString('zh-CN',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+    }
+    function statusTag(s){
+      return {1:'<span class="tag tag-success">正常</span>',2:'<span class="tag tag-warning">已挂失</span>',3:'<span class="tag tag-danger">已注销</span>'}[s]||'<span class="tag tag-default">未知</span>';
+    }
+    function typeLabel(t){ return t===1?'<span class="tag tag-info">学生</span>':'<span class="tag tag-default">教职工</span>'; }
+
+    function showToast(msg,type){
+      type=type||'info';
+      const c=document.getElementById('toastContainer');
+      const t=document.createElement('div');
+      t.className='toast '+type;
+      const i={success:'&#10004;',error:'&#10006;',warning:'&#9888;',info:'&#8505;'};
+      t.innerHTML='<span>'+(i[type]||i.info)+'</span><span>'+msg+'</span>';
+      c.appendChild(t);
+      setTimeout(()=>{t.style.opacity='0';t.style.transform='translateX(60px)';t.style.transition='all 0.3s ease';setTimeout(()=>t.remove(),300);},3000);
+    }
+
+    // ========== 表单校验 ==========
+    function showError(fid,eid,msg){
+      document.getElementById(fid).classList.add('error');
+      const e=document.getElementById(eid); e.textContent=msg; e.classList.add('show');
+    }
+    function clearError(fid,eid){
+      document.getElementById(fid).classList.remove('error');
+      const e=document.getElementById(eid); e.textContent=''; e.classList.remove('show');
+    }
+    function clearRegErrors(){
+      ['regName','regType','regCardNo','regBalance'].forEach(id => clearError(id,id+'Error'));
+    }
+
+    // ========== 开卡提交 ==========
+    async function handleRegister(e){
+      e.preventDefault();
+      clearRegErrors();
+
+      const name = document.getElementById('regName').value.trim();
+      const type = document.getElementById('regType').value;
+      const cardNo = document.getElementById('regCardNo').value.trim();
+      const balance = document.getElementById('regBalance').value;
+
+      let valid=true;
+      if(!name || name.length<2){showError('regName','regNameError','请输入有效的姓名(至少2个字符)');valid=false;}
+      if(!type){showError('regType','regTypeError','请选择人员类型');valid=false;}
+      if(balance && (isNaN(balance) || Number(balance)<0)){showError('regBalance','regBalanceError','初始余额必须为非负数');valid=false;}
+
+      if(!valid) return false;
+
+      const btn = document.getElementById('regSubmitBtn');
+      btn.disabled=true;
+      btn.innerHTML='<span class="loading-spinner" style="width:18px;height:18px;border-width:2px;"></span> 开卡中...';
+
+      const payload = { name:name, type:parseInt(type) };
+      if(cardNo) payload.cardNumber = cardNo;
+      if(balance) payload.balance = parseFloat(balance);
+
+      const res = await apiPost('/card-holder/register', payload, true);
+
+      if(res && res.code===200){
+        showToast((res.msg||'开卡成功')+' 卡号：'+ (res.data&&res.data.cardNumber?res.data.cardNumber:''), 'success');
+        document.getElementById('registerForm').reset();
+        document.getElementById('regBalance').value='0';
+        loadRecentRegistrations(); loadStatsData();
+      } else {
+        showToast((res&&res.msg)||'开卡失败，请重试', 'error');
+      }
+      btn.disabled=false;
+      btn.innerHTML='&#9989; 确认开卡';
+      return false;
+    }
+
+    // ========== 数据加载 ==========
+    async function loadRecentRegistrations(){
+      const tbody=document.getElementById('recentRegsBody');
+      const res=await apiGet('/card-holder');
+      if(res && res.code===200 && Array.isArray(res.data)){
+        const list=res.data.slice(-10).reverse();
+        if(list.length===0){
+          tbody.innerHTML='<tr><td colspan="6" class="empty-state"><div class="empty-icon">&#128196;</div><p>暂无持卡者数据</p></td></tr>';
+          return;
+        }
+        tbody.innerHTML=list.map(item=>`
+          <tr>
+            <td><strong>${item.cardNumber||'--'}</strong></td>
+            <td>${item.name||'--'}</td>
+            <td>${typeLabel(item.type)}</td>
+            <td>${formatMoney(item.balance)}</td>
+            <td>${formatDate(item.createTime)}</td>
+            <td>${statusTag(item.status)}</td>
+          </tr>`).join('');
+      } else {
+        tbody.innerHTML='<tr><td colspan="6" class="empty-state"><div class="empty-icon">&#9888;</div><p>加载失败</p></td></tr>';
+      }
+    }
+
+    async function loadStatsData(){
+      const res=await apiGet('/card-holder');
+      if(res && res.code===200 && Array.isArray(res.data)){
+        const list=res.data.filter(i=>i.status!==3);
+        document.getElementById('regTotalCount').textContent=list.length;
+        document.getElementById('regStudentCount').textContent=list.filter(i=>i.type===1).length;
+        document.getElementById('regStaffCount').textContent=list.filter(i=>i.type===2).length;
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded',function(){
+      loadRecentRegistrations(); loadStatsData();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>系统首页 - 校园饭卡管理系统</title>
+  <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- ==================== 侧边栏导航 ==================== -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo-icon-small">&#127860;</div>
+        <span>饭卡管理</span>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">主要功能</div>
+        <a href="/index" class="nav-item active">
+          <span class="nav-icon">&#127967;</span>
+          <span>系统首页</span>
+        </a>
+        <a href="/register" class="nav-item">
+          <span class="nav-icon">&#128179;</span>
+          <span>开卡注册</span>
+        </a>
+        <a href="/recharge-consume" class="nav-item">
+          <span class="nav-icon">&#128181;</span>
+          <span>充值/消费</span>
+        </a>
+        <a href="/loss-management" class="nav-item">
+          <span class="nav-icon">&#128274;</span>
+          <span>挂失/解冻</span>
+        </a>
+        <a href="/transactions" class="nav-item">
+          <span class="nav-icon">&#128200;</span>
+          <span>交易记录</span>
+        </a>
+
+        <div class="nav-section-title">系统管理</div>
+        <a href="/settings" class="nav-item">
+          <span class="nav-icon">&#9881;</span>
+          <span>备份与设置</span>
+        </a>
+      </nav>
+    </aside>
+
+    <!-- ==================== 主内容区 ==================== -->
+    <main class="main-content">
+      <!-- 顶部导航栏 -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <span class="breadcrumb"><strong>控制面板</strong> / 系统首页</span>
+        </div>
+        <div class="topbar-right">
+          <div class="user-info" onclick="showToast('当前用户：管理员(admin)','info')">
+            <div class="avatar">A</div>
+            <span style="font-size:13px;font-weight:500;">管理员</span>
+          </div>
+          <a href="/login" class="btn btn-default btn-sm" onclick="return confirmLogout()">
+            &#10149; 退出
+          </a>
+        </div>
+      </header>
+
+      <!-- 页面内容 -->
+      <div class="page-content">
+        <!-- 页面标题 -->
+        <div class="page-header">
+          <h2>系统概览</h2>
+          <p>校园饭卡管理系统数据总览，实时掌握运营情况</p>
+        </div>
+
+        <!-- 数据统计卡片 -->
+        <div class="stats-row" id="statsRow">
+          <div class="stat-card">
+            <div class="stat-icon blue">&#128101;</div>
+            <div class="stat-info">
+              <div class="stat-value" id="totalUsers">--</div>
+              <div class="stat-label">持卡者总数</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon green">&#128176;</div>
+            <div class="stat-info">
+              <div class="stat-value" id="totalBalance">--</div>
+              <div class="stat-label">总余额(元)</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon orange">&#128230;</div>
+            <div class="stat-info">
+              <div class="stat-value" id="todayTransactions">--</div>
+              <div class="stat-label">今日交易笔数</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon red">&#128683;</div>
+            <div class="stat-info">
+              <div class="stat-value" id="lossCount">--</div>
+              <div class="stat-label">挂失中卡数</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 快捷操作 + 最近记录 -->
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
+          <!-- 快捷操作 -->
+          <div class="card">
+            <div class="card-header">
+              <h3>&#9889; 快捷操作</h3>
+            </div>
+            <div class="card-body">
+              <div class="quick-actions-grid" style="grid-template-columns: 1fr 1fr;">
+                <a href="/register" class="qa-card" style="cursor:pointer;text-decoration:none;display:block;">
+                  <div class="qa-icon" style="background:#e6f7ff;color:#1890ff;">&#128179;</div>
+                  <h4>新户开卡</h4>
+                  <p>为学生或教职工办理新的饭卡</p>
+                </a>
+                <a href="/recharge-consume" class="qa-card" style="cursor:pointer;text-decoration:none;display:block;">
+                  <div class="qa-icon" style="background:#f6ffed;color:#52c41a;">&#128181;</div>
+                  <h4>充值消费</h4>
+                  <p>进行饭卡充值或消费操作</p>
+                </a>
+                <a href="/loss-management" class="qa-card" style="cursor:pointer;text-decoration:none;display:block;">
+                  <div class="qa-icon" style="background:#fffbe6;color:#faad14;">&#128274;</div>
+                  <h4>挂失解冻</h4>
+                  <p>挂失冻结或解冻恢复饭卡</p>
+                </a>
+                <a href="/transactions" class="qa-card" style="cursor:pointer;text-decoration:none;display:block;">
+                  <div class="qa-icon" style="background:#f9f0ff;color:#722ed1;">&#128200;</div>
+                  <h4>交易查询</h4>
+                  <p>查看所有交易流水记录</p>
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <!-- 最近交易记录 -->
+          <div class="card">
+            <div class="card-header">
+              <h3>&#128337; 最近交易记录</h3>
+              <a href="/transactions" class="btn btn-sm btn-outline">查看全部 &raquo;</a>
+            </div>
+            <div class="card-body" style="padding:0;">
+              <div class="table-wrapper">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>卡号</th>
+                      <th>类型</th>
+                      <th>金额</th>
+                      <th>时间</th>
+                    </tr>
+                  </thead>
+                  <tbody id="recentTransactions">
+                    <tr>
+                      <td colspan="4" class="empty-state">
+                        <div class="empty-icon">&#8987;</div>
+                        <p>正在加载数据...</p>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 持卡者列表预览 -->
+        <div class="card mt-24">
+          <div class="card-header">
+            <h3>&#128101; 持卡者列表</h3>
+            <div style="display:flex;gap:8px;">
+              <a href="/register" class="btn btn-primary btn-sm">+ 新增持卡者</a>
+              <button class="btn btn-default btn-sm" onclick="loadCardHolders()">刷新</button>
+            </div>
+          </div>
+          <div class="card-body" style="padding:0;">
+            <div class="table-wrapper">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>卡号</th>
+                    <th>姓名</th>
+                    <th>类型</th>
+                    <th>余额(元)</th>
+                    <th>状态</th>
+                    <th>创建时间</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="cardHolderTableBody">
+                  <tr>
+                    <td colspan="8" class="empty-state">
+                      <div class="empty-icon">&#8987;</div>
+                      <p>正在加载数据...</p>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Toast容器 -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script>
+    // ========== 工具函数 ==========
+    const API_BASE = '/api';
+
+    async function apiGet(url) {
+      try {
+        const res = await fetch(API_BASE + url);
+        return await res.json();
+      } catch (err) {
+        console.error('API请求失败:', url, err);
+        return null;
+      }
+    }
+
+    async function apiPost(url, data) {
+      try {
+        const options = {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        };
+        if (data && typeof data === 'object') {
+          // 区分 JSON body 和 form params
+          if (url.includes('?')) {
+            options.headers['Content-Type'] = 'application/x-www-form-urlencoded';
+            options.body = Object.entries(data).map(([k,v]) => k+'='+encodeURIComponent(v)).join('&');
+          } else {
+            options.body = JSON.stringify(data);
+          }
+        }
+        const res = await fetch(API_BASE + url, options);
+        return await res.json();
+      } catch (err) {
+        console.error('API POST失败:', url, err);
+        return null;
+      }
+    }
+
+    function formatMoney(val) {
+      if (val == null) return '0.00';
+      return Number(val).toFixed(2);
+    }
+
+    function formatDate(dt) {
+      if (!dt) return '--';
+      const d = new Date(dt);
+      return d.toLocaleString('zh-CN', {
+        year:'numeric',month:'2-digit',day:'2-digit',
+        hour:'2-digit',minute:'2-digit',second:'2-digit'
+      });
+    }
+
+    function statusTag(status) {
+      const map = {
+        1: '<span class="tag tag-success">正常</span>',
+        2: '<span class="tag tag-warning">已挂失</span>',
+        3: '<span class="tag tag-danger">已注销</span>'
+      };
+      return map[status] || '<span class="tag tag-default">未知</span>';
+    }
+
+    function typeLabel(type) {
+      return type === 1 ? '<span class="tag tag-info">学生</span>' : '<span class="tag tag-default">教职工</span>';
+    }
+
+    function transTypeTag(type) {
+      return type === 1
+        ? '<span class="tag tag-success">充值</span>'
+        : '<span class="tag tag-danger">消费</span>';
+    }
+
+    // ========== Toast提示 ==========
+    function showToast(msg, type) {
+      type = type || 'info';
+      const c = document.getElementById('toastContainer');
+      const t = document.createElement('div');
+      t.className = 'toast ' + type;
+      const icons = { success:'&#10004;', error:'&#10006;', warning:'&#9888;', info:'&#8505;' };
+      t.innerHTML = '<span>'+(icons[type]||icons.info)+'</span><span>'+msg+'</span>';
+      c.appendChild(t);
+      setTimeout(() => {
+        t.style.opacity='0'; t.style.transform='translateX(60px)';
+        t.style.transition='all 0.3s ease';
+        setTimeout(()=>t.remove(),300);
+      }, 3000);
+    }
+
+    // ========== 加载数据统计 ==========
+    async function loadStats() {
+      const result = await apiGet('/card-holder');
+      if (result && result.code === 200 && Array.isArray(result.data)) {
+        const list = result.data;
+
+        // 总人数
+        document.getElementById('totalUsers').textContent = list.length;
+
+        // 总余额（仅正常+挂失状态的）
+        const totalBal = list.reduce((sum, item) => {
+          if (item.status !== 3) sum += Number(item.balance || 0);
+          return sum;
+        }, 0);
+        document.getElementById('totalBalance').textContent = formatMoney(totalBal);
+
+        // 挂失数
+        const lossCnt = list.filter(item => item.status === 2).length;
+        document.getElementById('lossCount').textContent = lossCnt;
+      } else {
+        ['totalUsers','totalBalance','lossCount'].forEach(id => {
+          document.getElementById(id).textContent = '0';
+        });
+      }
+
+      // 今日交易数
+      const transRes = await apiGet('/transaction');
+      if (transRes && transRes.code === 200 && Array.isArray(transRes.data)) {
+        const today = new Date().toDateString();
+        const todayCount = transRes.data.filter(t => {
+          return new Date(t.transactionTime).toDateString() === today;
+        }).length;
+        document.getElementById('todayTransactions').textContent = todayCount;
+      } else {
+        document.getElementById('todayTransactions').textContent = '0';
+      }
+    }
+
+    // ========== 最近交易记录 ==========
+    async function loadRecentTransactions() {
+      const tbody = document.getElementById('recentTransactions');
+      const res = await apiGet('/transaction');
+      if (res && res.code === 200 && Array.isArray(res.data)) {
+        const recent = res.data.slice(-5).reverse();
+        if (recent.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="4" class="empty-state"><div class="empty-icon">&#128196;</div><p>暂无交易记录</p></td></tr>';
+          return;
+        }
+        tbody.innerHTML = recent.map(t => `
+          <tr>
+            <td>${t.cardNumber || '--'}</td>
+            <td>${transTypeTag(t.transactionType)}</td>
+            <td class="${t.transactionType === 1 ? 'text-success' : 'text-danger'}">${t.transactionType === 1 ? '+' : '-'}${formatMoney(t.amount)}</td>
+            <td>${formatDate(t.transactionTime)}</td>
+          </tr>
+        `).join('');
+      } else {
+        tbody.innerHTML = '<tr><td colspan="4" class="empty-state"><div class="empty-icon">&#9888;</div><p>加载失败，请检查服务</p></td></tr>';
+      }
+    }
+
+    // ========== 持卡者列表 ==========
+    async function loadCardHolders() {
+      const tbody = document.getElementById('cardHolderTableBody');
+      const res = await apiGet('/card-holder');
+      if (res && res.code === 200 && Array.isArray(res.data)) {
+        if (res.data.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="8" class="empty-state"><div class="empty-icon">&#128101;</div><p>暂无持卡者数据</p></td></tr>';
+          return;
+        }
+        tbody.innerHTML = res.data.map(item => `
+          <tr>
+            <td>${item.id}</td>
+            <td><strong>${item.cardNumber || '--'}</strong></td>
+            <td>${item.name || '--'}</td>
+            <td>${typeLabel(item.type)}</td>
+            <td><strong>${formatMoney(item.balance)}</strong></td>
+            <td>${statusTag(item.status)}</td>
+            <td>${formatDate(item.createTime)}</td>
+            <td>
+              <div class="action-btns">
+                ${item.status === 1 ? `<button class="btn btn-warning btn-sm" onclick="quickRecharge('${item.cardNumber}')" title="快速充值">&#128181;</button>` : ''}
+                ${item.status === 1 ? `<button class="btn btn-danger btn-sm" onclick="quickLoss('${item.cardNumber}','${item.name}')" title="挂失">&#128274;</button>` : ''}
+                ${item.status === 2 ? `<button class="btn btn-success btn-sm" onclick="quickUnfreeze('${item.cardNumber}','${item.name}')" title="解冻">&#9989;</button>` : ''}
+              </div>
+            </td>
+          </tr>
+        `).join('');
+      } else {
+        tbody.innerHTML = '<tr><td colspan="8" class="empty-state"><div class="empty-icon">&#9888;</div><p>加载失败，请检查服务</p></td></tr>';
+      }
+    }
+
+    // 快捷操作
+    async function quickRecharge(cardNo) {
+      const amount = prompt(`为卡号 ${cardNo} 充值\n\n请输入充值金额（元）：`);
+      if (!amount) return;
+      const amt = parseFloat(amount);
+      if (isNaN(amt) || amt <= 0) {
+        showToast('请输入有效的充值金额', 'error'); return;
+      }
+      const res = await apiPost('/card-holder/recharge?cardNumber='+encodeURIComponent(cardNo)+'&amount='+amt);
+      if (res && res.code === 200) {
+        showToast(res.msg || '充值成功', 'success');
+        loadCardHolders(); loadStats();
+      } else {
+        showToast((res && res.msg) || '充值失败', 'error');
+      }
+    }
+
+    async function quickLoss(cardNo, name) {
+      if (!confirm(`确定要挂失【${name}】的饭卡吗？\n卡号：${cardNo}\n\n挂失后该卡将被冻结，无法使用。`)) return;
+      const res = await apiPost('/card-holder/report-loss/' + cardNo);
+      if (res && res.code === 200) {
+        showToast(res.msg || '挂失成功', 'success');
+        loadCardHolders(); loadStats();
+      } else {
+        showToast((res && res.msg) || '挂失失败', 'error');
+      }
+    }
+
+    async function quickUnfreeze(cardNo, name) {
+      if (!confirm(`确定要解冻【${name}】的饭卡吗？\n卡号：${cardNo}`)) return;
+      const res = await apiPost('/card-holder/unfreeze/' + cardNo);
+      if (res && res.code === 200) {
+        showToast(res.msg || '解冻成功', 'success');
+        loadCardHolders(); loadStats();
+      } else {
+        showToast((res && res.msg) || '解冻失败', 'error');
+      }
+    }
+
+    // ========== 退出确认 ==========
+    function confirmLogout() {
+      return confirm('确定要退出系统吗？');
+    }
+
+    // ========== 页面初始化 ==========
+    document.addEventListener('DOMContentLoaded', function () {
+      loadStats();
+      loadRecentTransactions();
+      loadCardHolders();
+    });
+  </script>
+</body>
+</html>

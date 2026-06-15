@@ -1,0 +1,15 @@
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://127.0.0.1:3309/campus_meal_card?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf8mb4&useSSL=false
+    username: root
+    password: 你的数据库root密码
+  thymeleaf:
+    cache: false
+
+mybatis-plus:
+  mapper-locations: classpath:mapper/**/*.xml
+  type-aliases-package: com.example.campus_mealcardsystem.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl

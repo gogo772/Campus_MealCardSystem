@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>交易记录 - 校园饭卡管理系统</title>
+  <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- 侧边栏 -->
+    <aside class="sidebar">
+      <div class="sidebar-header"><div class="logo-icon-small">&#127860;</div><span>饭卡管理</span></div>
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">主要功能</div>
+        <a href="/index" class="nav-item"><span class="nav-icon">&#127967;</span><span>系统首页</span></a>
+        <a href="/register" class="nav-item"><span class="nav-icon">&#128179;</span><span>开卡注册</span></a>
+        <a href="/recharge-consume" class="nav-item"><span class="nav-icon">&#128181;</span><span>充值/消费</span></a>
+        <a href="/loss-management" class="nav-item"><span class="nav-icon">&#128274;</span><span>挂失/解冻</span></a>
+        <a href="/transactions" class="nav-item active"><span class="nav-icon">&#128200;</span><span>交易记录</span></a>
+        <div class="nav-section-title">系统管理</div>
+        <a href="/settings" class="nav-item"><span class="nav-icon">&#9881;</span><span>备份与设置</span></a>
+      </nav>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div class="topbar-left"><span class="breadcrumb"><strong>控制面板</strong> / 交易记录查询</span></div>
+        <div class="topbar-right">
+          <div class="user-info"><div class="avatar">A</div><span style="font-size:13px;font-weight:500;">管理员</span></div>
+          <a href="/login" class="btn btn-default btn-sm" onclick="return confirm('确定要退出？')">&#10149; 退出</a>
+        </div>
+      </header>
+
+      <div class="page-content">
+        <!-- 页面标题 -->
+        <div class="page-header">
+          <h2>&#128200; 交易记录查询</h2>
+          <p>查看所有饭卡的交易流水记录，支持按条件筛选和分页浏览</p>
+        </div>
+
+        <!-- 筛选工具栏 -->
+        <div class="filter-bar">
+          <div style="display:flex;align-items:center;gap:8px;flex:1;flex-wrap:wrap;">
+            <div>
+              <input type="text" id="filterCardNo" class="form-control" placeholder="卡号筛选"
+                     style="height:34px;width:170px;font-size:13px;" list="txnCardNoList"
+                     oninput="onFilterChange()">
+              <datalist id="txnCardNoList"></datalist>
+            </div>
+            <div>
+              <select id="filterType" class="form-control" onchange="onFilterChange()" style="height:34px;width:130px;font-size:13px;">
+                <option value="">全部类型</option>
+                <option value="1">充值</option>
+                <option value="2">消费</option>
+              </select>
+            </div>
+            <div>
+              <input type="date" id="filterDateFrom" class="form-control" style="height:34px;width:155px;font-size:13px;" onchange="onFilterChange()">
+            </div>
+            <span style="color:var(--text-hint);font-size:13px;">至</span>
+            <div>
+              <input type="date" id="filterDateTo" class="form-control" style="height:34px;width:155px;font-size:13px;" onchange="onFilterChange()">
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-primary" style="height:34px;" onclick="doSearch()">
+              &#128269; 查询
+            </button>
+            <button class="btn btn-default" style="height:34px;" onclick="resetFilters()">
+              &#8634; 重置
+            </button>
+          </div>
+        </div>
+
+        <!-- 汇总统计 -->
+        <div class="stats-row" style="margin-bottom:16px;">
+          <div class="stat-card">
+            <div class="stat-icon blue">&#128202;</div>
+            <div class="stat-info">
+              <div class="stat-value" id="totalCount">0</div>
+              <div class="stat-label">总记录数（当前筛选）</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon green">&#8593;</div>
+            <div class="stat-info">
+              <div class="stat-value" id="totalRecharge">￥0.00</div>
+              <div class="stat-label">充值总额</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon red">&#8595;</div>
+            <div class="stat-info">
+              <div class="stat-value" id="totalConsume">￥0.00</div>
+              <div class="stat-label">消费总额</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon purple">&#128176;</div>
+            <div class="stat-info">
+              <div class="stat-value" id="netAmount">￥0.00</div>
+              <div class="stat-label">净流入金额</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 交易表格 -->
+        <div class="card">
+          <div class="card-header">
+            <h3>&#128196; 交易流水明细</h3>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <span id="resultInfo" style="font-size:13px;color:var(--text-hint);"></span>
+            </div>
+          </div>
+          <div class="card-body" style="padding:0;">
+            <div class="table-wrapper">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>卡号</th>
+                    <th>交易类型</th>
+                    <th>金额</th>
+                    <th>交易前余额</th>
+                    <th>交易后余额</th>
+                    <th>交易时间</th>
+                    <th>备注</th>
+                  </tr>
+                </thead>
+                <tbody id="txnTableBody">
+                  <tr>
+                    <td colspan="8" class="empty-state">
+                      <div class="empty-icon">&#8987;</div>
+                      <p>正在加载交易数据...</p>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- 分页 -->
+            <div class="pagination">
+              <div class="pagination-info" id="paginationInfo">
+                共 0 条记录，第 1/1 页
+              </div>
+              <div class="pagination-btns" id="paginationBtns">
+                <!-- 动态生成分页按钮 -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Toast容器 -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script>
+    const API_BASE='/api';
+    let allTransactions=[];
+    let filteredTransactions=[];
+    const PAGE_SIZE=10;
+    let currentPage=1;
+
+    async function apiGet(u){try{const r=await fetch(API_BASE+u);return await r.json();}catch(e){return null;}}
+
+    function formatMoney(v){return v==null?'0.00':Number(v).toFixed(2);}
+    function formatFullDate(dt){
+      if(!dt)return '--';
+      return new Date(dt).toLocaleString('zh-CN',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    }
+    function transTypeTag(t){
+      return t===1
+        ? '<span class="tag tag-success">&#8593; 充值</span>'
+        : '<span class="tag tag-danger">&#8595; 消费</span>';
+    }
+
+    function showToast(msg,t){
+      t=t||'info';const c=document.getElementById('toastContainer');
+      const el=document.createElement('div');el.className='toast '+t;
+      const ic={success:'&#10004;',error:'&#10006;',warning:'&#9888;',info:'&#8505;'};
+      el.innerHTML='<span>'+(ic[t]||ic.info)+'</span><span>'+msg+'</span>';
+      c.appendChild(el);
+      setTimeout(()=>{el.style.opacity='0';el.style.transform='translateX(60px)';el.style.transition='all .3s ease';setTimeout(()=>el.remove(),300);},3000);
+    }
+
+    // ========== 加载所有交易 ==========
+    async function loadTransactions(showLoading){
+      if(showLoading!==false){
+        const tbody=document.getElementById('txnTableBody');
+        tbody.innerHTML='<tr><td colspan="8" class="empty-state"><div class="empty-icon loading-spinner" style="border-width:3px;width:36px;height:36px;margin:0 auto 12px;display:inline-block;"></div><p>加载数据中...</p></td></tr>';
+      }
+
+      const res=await apiGet('/transaction');
+      if(res && res.code===200 && Array.isArray(res.data)){
+        allTransactions=res.data.sort((a,b)=>new Date(b.transactionTime)-new Date(a.transactionTime));
+        doFilter();
+      }else{
+        document.getElementById('txnTableBody').innerHTML=
+          '<tr><td colspan="8" class="empty-state"><div class="empty-icon">&#9888;</div><p>加载失败，请检查服务连接</p></td></tr>';
+      }
+    }
+
+    // ========== 筛选逻辑 ==========
+    function onFilterChange(){
+      // 延迟触发，避免频繁请求
+      clearTimeout(window._filterTimer);
+      window._filterTimer=setTimeout(doFilter,300);
+    }
+
+    function doSearch(){doFilter();}
+
+    function resetFilters(){
+      document.getElementById('filterCardNo').value='';
+      document.getElementById('filterType').value='';
+      document.getElementById('filterDateFrom').value='';
+      document.getElementById('filterDateTo').value='';
+      doFilter();
+    }
+
+    function doFilter(){
+      const cardNo=(document.getElementById('filterCardNo').value||'').trim().toLowerCase();
+      const type=document.getElementById('filterType').value;
+      const dateFrom=document.getElementById('filterDateFrom').value;
+      const dateTo=document.getElementById('filterDateTo').value;
+
+      filteredTransactions=allTransactions.filter(t=>{
+        if(cardNo && !(t.cardNumber||'').toLowerCase().includes(cardNo)) return false;
+        if(type && t.transactionType!==parseInt(type)) return false;
+        if(dateFrom && t.transactionTime){
+          const td=new Date(t.transactionTime).toISOString().slice(0,10);
+          if(td<dateFrom)return false;
+        }
+        if(dateTo && t.transactionTime){
+          const td=new Date(t.transactionTime).toISOString().slice(0,10);
+          if(td>dateTo)return false;
+        }
+        return true;
+      });
+
+      currentPage=1;
+      renderTable();
+      updateSummary();
+    }
+
+    // ========== 渲染表格 ==========
+    function renderTable(){
+      const tbody=document.getElementById('txnTableBody');
+      const total=filteredTransactions.length;
+      const totalPages=Math.ceil(total/PAGE_SIZE)||1;
+
+      if(currentPage>totalPages)currentPage=totalPages;
+      const start=(currentPage-1)*PAGE_SIZE;
+      const pageData=filteredTransactions.slice(start,start+PAGE_SIZE);
+
+      if(pageData.length===0){
+        tbody.innerHTML=`<tr><td colspan="8" class="empty-state"><div class="empty-icon">&#128196;</div><p>${allTransactions.length===0?'暂无交易记录':'没有符合筛选条件的记录'}</p></td></tr>`;
+      }else{
+        tbody.innerHTML=pageData.map(t=>`
+          <tr>
+            <td>${t.id}</td>
+            <td><strong>${t.cardNumber||'--'}</strong></td>
+            <td>${transTypeTag(t.transactionType)}</td>
+            <td style="font-weight:600;" class="${t.transactionType===1?'text-success':'text-danger'}">
+              ${t.transactionType===1?'+':'-'}${formatMoney(t.amount)}
+            </td>
+            <td>${formatMoney(t.beforeBalance)}</td>
+            <td><strong>${formatMoney(t.afterBalance)}</strong></td>
+            <td>${formatFullDate(t.transactionTime)}</td>
+            <td title="${t.remark||''}" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-hint);">
+              ${t.remark||'-'}
+            </td>
+          </tr>`).join('')
+        ;
+      }
+
+      renderPagination(total,totalPages);
+      document.getElementById('resultInfo').textContent=total>0?
+        `显示 ${(start+1)}-${Math.min(start+PAGE_SIZE,total)} / 共 ${total} 条`:'无匹配结果';
+    }
+
+    // ========== 分页 ==========
+    function renderPagination(total,totalPages){
+      document.getElementById('paginationInfo').textContent=
+        `共 ${total} 条记录，第 ${currentPage}/${totalPages} 页`;
+
+      const container=document.getElementById('paginationBtns');
+      let html='';
+
+      // 上一页
+      html+=`<button class="page-btn ${currentPage<=1?'disabled':''}" onclick="${currentPage<=1?'':'goPage('+(currentPage-1)+')'}">上一页</button>`;
+
+      // 页码按钮
+      const maxVisible=7;
+      let startPage=Math.max(1,currentPage-Math.floor(maxVisible/2));
+      let endPage=Math.min(totalPages,startPage+maxVisible-1);
+      if(endPage-startPage<maxVisible-1){startPage=Math.max(1,endPage-maxVisible+1);}
+
+      if(startPage>1){
+        html+=`<button class="page-btn" onclick="goPage(1)">1</button>`;
+        if(startPage>2)html+=`<span style="padding:0 4px;color:var(--text-hint);">...</span>`;
+      }
+
+      for(let i=startPage;i<=endPage;i++){
+        html+=`<button class="page-btn ${i===currentPage?'active':''}" onclick="goPage(${i})">${i}</button>`;
+      }
+
+      if(endPage<totalPages){
+        if(endPage<totalPages-1)html+=`<span style="padding:0 4px;color:var(--text-hint);">...</span>`;
+        html+=`<button class="page-btn" onclick="goPage(${totalPages})">${totalPages}</button>`;
+      }
+
+      // 下一页
+      html+=`<button class="page-btn ${currentPage>=totalPages?'disabled':''}" onclick="${currentPage>=totalPages?'':'goPage('+(currentPage+1)+')'}">下一页</button>`;
+
+      container.innerHTML=html;
+    }
+
+    function goPage(p){if(p<1)return;if(Math.ceil(filteredTransactions.length/PAGE_SIZE)<p)return;currentPage=p;renderTable();}
+
+    // ========== 汇总统计 ==========
+    function updateSummary(){
+      document.getElementById('totalCount').textContent=filteredTransactions.length;
+
+      let rechargeTotal=0,consumeTotal=0;
+      filteredTransactions.forEach(t=>{
+        if(t.transactionType===1)rechargeTotal+=Number(t.amount||0);
+        else consumeTotal+=Number(t.amount||0);
+      });
+
+      document.getElementById('totalRecharge').textContent='￥'+rechargeTotal.toFixed(2);
+      document.getElementById('totalConsume').textContent='￥'+consumeTotal.toFixed(2);
+      document.getElementById('netAmount').textContent='￥'+(rechargeTotal-consumeTotal).toFixed(2);
+    }
+
+    // 填充卡号datalist
+    async function loadCardNumbers(){
+      const res=await apiGet('/card-holder');
+      if(res && res.code===200 && Array.isArray(res.data)){
+        const nos=[...new Set(res.data.map(h=>h.cardNumber).filter(Boolean))];
+        document.getElementById('txnCardNoList').innerHTML=nos.map(n=>`<option value="${n}">`).join('');
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded',function(){
+      loadTransactions();loadCardNumbers();
+    });
+  </script>
+</body>
+</html>

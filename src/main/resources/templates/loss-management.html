@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>挂失/解冻管理 - 校园饭卡管理系统</title>
+  <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- 侧边栏 -->
+    <aside class="sidebar">
+      <div class="sidebar-header"><div class="logo-icon-small">&#127860;</div><span>饭卡管理</span></div>
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">主要功能</div>
+        <a href="/index" class="nav-item"><span class="nav-icon">&#127967;</span><span>系统首页</span></a>
+        <a href="/register" class="nav-item"><span class="nav-icon">&#128179;</span><span>开卡注册</span></a>
+        <a href="/recharge-consume" class="nav-item"><span class="nav-icon">&#128181;</span><span>充值/消费</span></a>
+        <a href="/loss-management" class="nav-item active"><span class="nav-icon">&#128274;</span><span>挂失/解冻</span></a>
+        <a href="/transactions" class="nav-item"><span class="nav-icon">&#128200;</span><span>交易记录</span></a>
+        <div class="nav-section-title">系统管理</div>
+        <a href="/settings" class="nav-item"><span class="nav-icon">&#9881;</span><span>备份与设置</span></a>
+      </nav>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div class="topbar-left"><span class="breadcrumb"><strong>控制面板</strong> / 挂失解冻管理</span></div>
+        <div class="topbar-right">
+          <div class="user-info"><div class="avatar">A</div><span style="font-size:13px;font-weight:500;">管理员</span></div>
+          <a href="/login" class="btn btn-default btn-sm" onclick="return confirm('确定要退出？')">&#10149; 退出</a>
+        </div>
+      </header>
+
+      <div class="page-content">
+        <!-- 页面标题 -->
+        <div class="page-header">
+          <h2>&#128274; 挂失 / 解冻管理</h2>
+          <p>对饭卡进行挂失冻结或解冻恢复操作，确保持卡人资金安全</p>
+        </div>
+
+        <!-- 统计卡片 -->
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-icon green">&#9989;</div>
+            <div class="stat-info">
+              <div class="stat-value" id="normalCount">--</div>
+              <div class="stat-label">正常状态卡数</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon orange">&#9888;</div>
+            <div class="stat-info">
+              <div class="stat-value" id="lossCount">--</div>
+              <div class="stat-label">挂失中卡数</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon red">&#128683;</div>
+            <div class="stat-info">
+              <div class="stat-value" id="cancelledCount">--</div>
+              <div class="stat-label">已注销卡数</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 460px 1fr; gap:24px; align-items:start;">
+          <!-- 左侧：操作面板 -->
+          <div>
+            <!-- 挂失操作 -->
+            <div class="card" style="margin-bottom:16px;">
+              <div class="card-header">
+                <h3 style="color:#d48806;">&#128274; 饭卡挂失</h3>
+              </div>
+              <div class="card-body">
+                <form id="lossForm" onsubmit="return handleReportLoss(event)">
+                  <div class="form-group">
+                    <label for="lossCardNo"><span class="text-danger">*</span> 饭卡号</label>
+                    <input type="text" id="lossCardNo" class="form-control"
+                           placeholder="请输入要挂失的卡号" required list="normalCardList"
+                           onblur="showCardPreview(this.value,'loss')">
+                    <datalist id="normalCardList"></datalist>
+                    <div class="form-error" id="lossCardNoErr"></div>
+                  </div>
+
+                  <!-- 卡信息预览 -->
+                  <div id="lossCardPreview" style="background:#fffbe6;border:1px solid #ffe58f;border-radius:6px;padding:14px;margin-bottom:16px;display:none;">
+                    <div style="font-size:13px;color:var(--text-secondary);" id="lossPreviewText"></div>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="lossReason">挂失原因</label>
+                    <select id="lossReason" class="form-control">
+                      <option value="丢失">卡片丢失</option>
+                      <option value="被盗">疑似被盗用</option>
+                      <option value="损坏">卡片损坏</option>
+                      <option value="其他">其他原因</option>
+                    </select>
+                  </div>
+
+                  <div style="background:#fff2f0;border:1px solid #ffa39e;border-radius:6px;padding:12px;font-size:13px;color:#cf1322;margin-bottom:16px;">
+                    &#9888; <strong>警告：</strong>挂失后该饭卡将被<strong>冻结</strong>，无法进行任何消费和充值操作。
+                    挂失前请确认卡内余额安全。
+                  </div>
+
+                  <button type="submit" class="btn btn-warning btn-lg btn-block" id="lossSubmitBtn">
+                    &#128274; 确认挂失
+                  </button>
+                </form>
+              </div>
+            </div>
+
+            <!-- 解冻操作 -->
+            <div class="card">
+              <div class="card-header">
+                <h3 style="color:#52c41a;">&#9989; 饭卡解冻</h3>
+              </div>
+              <div class="card-body">
+                <form id="unfreezeForm" onsubmit="return handleUnfreeze(event)">
+                  <div class="form-group">
+                    <label for="unfreezeCardNo"><span class="text-danger">*</span> 饭卡号</label>
+                    <input type="text" id="unfreezeCardNo" class="form-control"
+                           placeholder="请输入要解冻的卡号" required list="lostCardList"
+                           onblur="showCardPreview(this.value,'unfreeze')">
+                    <datalist id="lostCardList"></datalist>
+                    <div class="form-error" id="unfreezeCardNoErr"></div>
+                  </div>
+
+                  <div id="unfreezeCardPreview" style="background:#f6ffed;border:1px solid #b7eb8f;border-radius:6px;padding:14px;margin-bottom:16px;display:none;">
+                    <div style="font-size:13px;color:var(--text-secondary);" id="unfreezePreviewText"></div>
+                  </div>
+
+                  <div style="background:#e6f7ff;border:1px solid #91d5ff;border-radius:6px;padding:12px;font-size:13px;color:#0050b3;margin-bottom:16px;">
+                    &#8505; <strong>说明：</strong>解冻后饭卡将恢复正常使用，可进行充值、消费等所有操作。
+                    请在确认持卡人身份后再执行此操作。
+                  </div>
+
+                  <button type="submit" class="btn btn-success btn-lg btn-block" id="unfreezeSubmitBtn">
+                    &#9989; 确认解冻
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <!-- 右侧：全部持卡者列表 -->
+          <div>
+            <!-- 状态筛选标签栏 -->
+            <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+              <button class="btn btn-primary btn-sm filter-tag active" onclick="filterByStatus('all',this)">全部 (<span id="filterAllCnt">0</span>)</button>
+              <button class="btn btn-default btn-sm filter-tag" onclick="filterByStatus(1,this)">正常 (<span id="filterNormalCnt">0</span>)</button>
+              <button class="btn btn-default btn-sm filter-tag" onclick="filterByStatus(2,this)">已挂失 (<span id="filterLossCnt">0</span>)</button>
+              <button class="btn btn-default btn-sm filter-tag" onclick="filterByStatus(3,this)">已注销 (<span id="filterCancelCnt">0</span>)</button>
+              <input type="text" class="form-control" id="searchInput" placeholder="搜索姓名/卡号..."
+                     style="height:32px;width:160px;font-size:13px;" oninput="applyFilters()">
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h3>&#128101; 持卡者列表</h3>
+                <button class="btn btn-sm btn-default" onclick="loadAllHolders()">刷新列表</button>
+              </div>
+              <div class="card-body" style="padding:0;">
+                <div class="table-wrapper">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>ID</th><th>卡号</th><th>姓名</th><th>类型</th><th>余额</th><th>状态</th><th>创建时间</th><th>操作</th>
+                      </tr>
+                    </thead>
+                    <tbody id="holderTableBody">
+                      <tr><td colspan="8" class="empty-state"><div class="empty-icon">&#8987;</div><p>加载中...</p></td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- 确认对话框 -->
+  <div class="confirm-overlay hidden" id="confirmOverlay">
+    <div class="confirm-box">
+      <div class="confirm-icon" id="confirmIcon">&#9888;</div>
+      <h3 id="confirmTitle">确认操作</h3>
+      <p id="confirmMsg"></p>
+      <div class="confirm-btns">
+        <button class="btn btn-default" onclick="closeConfirm()">取消</button>
+        <button class="btn btn-warning" id="confirmOkBtn">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast容器 -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script>
+    const API_BASE='/api';
+    let allHolders=[];
+    let currentFilter='all';
+
+    async function apiGet(u){try{const r=await fetch(API_BASE+u);return await r.json();}catch(e){return null;}}
+    async function apiPost(u){try{const r=await fetch(API_BASE+u,{method:'POST'});return await r.json();}catch(e){return null;}}
+
+    function formatMoney(v){return v==null?'0.00':Number(v).toFixed(2);}
+    function formatDate(dt){if(!dt)return '--';return new Date(dt).toLocaleString('zh-CN',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});}
+    function statusTag(s){return{1:'<span class="tag tag-success">正常</span>',2:'<span class="tag tag-warning">已挂失</span>',3:'<span class="tag tag-danger">已注销</span>'}[s]||'?';}
+    function typeLabel(t){return t===1?'<span class="tag tag-info">学生</span>':'<span class="tag tag-default">教职工</span>';}
+
+    function showToast(msg,t){
+      t=t||'info';const c=document.getElementById('toastContainer');
+      const el=document.createElement('div');el.className='toast '+t;
+      const ic={success:'&#10004;',error:'&#10006;',warning:'&#9888;',info:'&#8505;'};
+      el.innerHTML='<span>'+(ic[t]||ic.info)+'</span><span>'+msg+'</span>';
+      c.appendChild(el);
+      setTimeout(()=>{el.style.opacity='0';el.style.transform='translateX(60px)';el.style.transition='all .3s ease';setTimeout(()=>el.remove(),300);},3000);
+    }
+
+    // ========== 确认对话框 ==========
+    let confirmCallback=null;
+    function showConfirm(title,msg,icon,okText,cb){
+      document.getElementById('confirmTitle').textContent=title;
+      document.getElementById('confirmMsg').innerHTML=msg;
+      document.getElementById('confirmIcon').innerHTML=icon||'&#9888;';
+      document.getElementById('confirmOkBtn').textContent=okText||'确定';
+      document.getElementById('confirmOkBtn').className='btn btn-warning';
+      if(okText==='确定解冻')document.getElementById('confirmOkBtn').className='btn btn-success';
+      confirmCallback=cb;
+      document.getElementById('confirmOverlay').classList.remove('hidden');
+    }
+    function closeConfirm(){document.getElementById('confirmOverlay').classList.add('hidden');}
+    document.getElementById('confirmOkBtn').addEventListener('click',function(){if(confirmCallback){confirmCallback();}closeConfirm();});
+
+    // ========== 卡信息预览 ==========
+    async function showCardPreview(cardNo,mode){
+      cardNo=(cardNo||'').trim();
+      const previewEl=document.getElementById(mode+'CardPreview');
+      const textEl=document.getElementById(mode+'PreviewText');
+
+      if(!cardNo){previewEl.style.display='none';return;}
+
+      const res=await apiGet('/card-holder/by-card/'+encodeURIComponent(cardNo));
+      if(res && res.code===200 && res.data){
+        const d=res.data;
+        textEl.innerHTML='<strong>姓名：</strong>'+d.name
+          +' | <strong>类型：</strong>'+(d.type===1?'学生':'教职工')
+          +'<br><strong>余额：</strong>￥'+formatMoney(d.balance)
+          +' | <strong>当前状态：</strong>'+(d.status===1?'正常':d.status===2?'已挂失':'已注销');
+        previewEl.style.display='block';
+      }else{
+        textEl.innerHTML='<span class="text-danger">未找到该卡号的信息</span>';
+        previewEl.style.display='block';
+      }
+    }
+
+    // ========== 挂失 ==========
+    async function handleReportLoss(e){
+      e.preventDefault();
+      const cardNo=document.getElementById('lossCardNo').value.trim();
+
+      ['lossCardNoErr'].forEach(id=>{const el=document.getElementById(id);el.textContent='';el.classList.remove('show');});
+
+      if(!cardNo){document.getElementById('lossCardNoErr').textContent='请输入卡号';document.getElementById('lossCardNoErr').classList.add('show');return false;}
+
+      showConfirm(
+        '确认挂失',
+        '您即将对以下饭卡执行<strong>挂失冻结</strong>操作：<br><br>'
+          +'<strong>卡号：</strong>'+cardNo+'<br>'
+          +'挂失后该卡将被冻结，无法使用。<br>'
+          +'是否继续？',
+        '&#128274;',
+        '确认挂失',
+        async function(){
+          const btn=document.getElementById('lossSubmitBtn');btn.disabled=true;btn.innerHTML='<span class="loading-spinner" style="width:18px;height:18px;"></span> 处理中...';
+
+          const res=await apiPost('/card-holder/report-loss/'+encodeURIComponent(cardNo));
+          if(res && res.code===200){
+            showToast((res.msg||'挂失成功'),'success');
+            document.getElementById('lossCardNo').value='';
+            document.getElementById('lossCardPreview').style.display='none';
+            loadAllHolders(); updateStats();
+          }else{
+            showToast((res&&res.msg)||'挂失失败','error');
+          }
+          btn.disabled=false;btn.innerHTML='&#128274; 确认挂失';
+        }
+      );
+      return false;
+    }
+
+    // ========== 解冻 ==========
+    async function handleUnfreeze(e){
+      e.preventDefault();
+      const cardNo=document.getElementById('unfreezeCardNo').value.trim();
+
+      ['unfreezeCardNoErr'].forEach(id=>{const el=document.getElementById(id);el.textContent='';el.classList.remove('show');});
+
+      if(!cardNo){document.getElementById('unfreezeCardNoErr').textContent='请输入卡号';document.getElementById('unfreezeCardNoErr').classList.add('show');return false;}
+
+      showConfirm(
+        '确认解冻',
+        '您即将对以下饭卡执行<strong>解冻恢复</strong>操作：<br><br>'
+          +'<strong>卡号：</strong>'+cardNo+'<br>'
+          +'解冻后该卡将恢复正常使用。<br>'
+          +'是否继续？',
+        '&#9989;',
+        '确定解冻',
+        async function(){
+          const btn=document.getElementById('unfreezeSubmitBtn');btn.disabled=true;btn.innerHTML='<span class="loading-spinner" style="width:18px;height:18px;"></span> 处理中...';
+
+          const res=await apiPost('/card-holder/unfreeze/'+encodeURIComponent(cardNo));
+          if(res && res.code===200){
+            showToast((res.msg||'解冻成功'),'success');
+            document.getElementById('unfreezeCardNo').value='';
+            document.getElementById('unfreezeCardPreview').style.display='none';
+            loadAllHolders(); updateStats();
+          }else{
+            showToast((res&&res.msg)||'解冻失败','error');
+          }
+          btn.disabled=false;btn.innerHTML='&#9989; 确认解冻';
+        }
+      );
+      return false;
+    }
+
+    // ========== 数据加载 & 筛选 ==========
+    async function loadAllHolders(){
+      const tbody=document.getElementById('holderTableBody');
+      const res=await apiGet('/card-holder');
+      if(res && res.code===200 && Array.isArray(res.data)){
+        allHolders=res.data;
+        populateDatalists(allHolders);
+        applyFilters();
+        updateStats();
+      }else{
+        tbody.innerHTML='<tr><td colspan="8" class="empty-state"><div class="empty-icon">&#9888;</div><p>加载失败</p></td></tr>';
+      }
+    }
+
+    function populateDatalists(list){
+      const normalNos=list.filter(h=>h.status===1).map(h=>h.cardNumber).filter(Boolean);
+      const lostNos=list.filter(h=>h.status===2).map(h=>h.cardNumber).filter(Boolean);
+      document.getElementById('normalCardList').innerHTML=normalNos.map(n=>`<option value="${n}">`).join('');
+      document.getElementById('lostCardList').innerHTML=lostNos.map(n=>`<option value="${n}">`).join('');
+    }
+
+    function updateStats(){
+      document.getElementById('normalCount').textContent=allHolders.filter(h=>h.status===1).length;
+      document.getElementById('lossCount').textContent=allHolders.filter(h=>h.status===2).length;
+      document.getElementById('cancelledCount').textContent=allHolders.filter(h=>h.status===3).length;
+
+      document.getElementById('filterAllCnt').textContent=allHolders.length;
+      document.getElementById('filterNormalCnt').textContent=allHolders.filter(h=>h.status===1).length;
+      document.getElementById('filterLossCnt').textContent=allHolders.filter(h=>h.status===2).length;
+      document.getElementById('filterCancelCnt').textContent=allHolders.filter(h=>h.status===3).length;
+    }
+
+    function filterByStatus(status,btnEl){
+      currentFilter=status;
+      document.querySelectorAll('.filter-tag').forEach(b=>{
+        b.className=status===(b.getAttribute('onclick')||'').match(/filterByStatus\((\d|'all')/)?.[1]?.replace(/'/g,'')
+          ? b.getAttribute('onclick').includes(status.toString()) ? 'btn btn-primary btn-sm filter-tag active' : 'btn btn-default btn-sm filter-tag'
+          : (status==='all'&&b.textContent.startsWith('全部'))?'btn btn-primary btn-sm filter-tag active':'btn btn-default btn-sm filter-tag';
+      });
+      // 简单重设active
+      document.querySelectorAll('.filter-tag').forEach(b=>b.classList.remove('active'));
+      if(btnEl) btnEl.classList.add('active');
+      applyFilters();
+    }
+
+    function applyFilters(){
+      const keyword=(document.getElementById('searchInput').value||'').toLowerCase();
+      let filtered=allHolders;
+      if(currentFilter!=='all'){
+        filtered=filtered.filter(h=>h.status===parseInt(currentFilter));
+      }
+      if(keyword){
+        filtered=filtered.filter(h=>(h.name||'').toLowerCase().includes(keyword)||(h.cardNumber||'').includes(keyword));
+      }
+      renderTable(filtered);
+    }
+
+    function renderTable(list){
+      const tbody=document.getElementById('holderTableBody');
+      if(list.length===0){
+        tbody.innerHTML='<tr><td colspan="8" class="empty-state"><div class="empty-icon">&#128196;</div><p>没有匹配的记录</p></td></tr>';
+        return;
+      }
+      tbody.innerHTML=list.map(h=>`
+        <tr>
+          <td>${h.id}</td>
+          <td><strong>${h.cardNumber||'--'}</strong></td>
+          <td>${h.name||'--'}</td>
+          <td>${typeLabel(h.type)}</td>
+          <td><strong>${formatMoney(h.balance)}</strong></td>
+          <td>${statusTag(h.status)}</td>
+          <td>${formatDate(h.createTime)}</td>
+          <td>
+            ${h.status===1?`<button class="btn btn-warning btn-sm" onclick="quickLoss('${h.cardNumber}','${h.name}')">挂失</button>`:''}
+            ${h.status===2?`<button class="btn btn-success btn-sm" onclick="quickUnfreeze('${h.cardNumber}','${h.name}')">解冻</button>`:''}
+            ${h.status===1?`<button class="btn btn-danger btn-sm" onclick="quickCancel('${h.cardNumber}','${h.name}')">注销</button>`:''}
+          </td>
+        </tr>`).join('');
+    }
+
+    // 快捷操作
+    async function quickLoss(cno,name){
+      showConfirm('确认挂失','确定要对【'+name+'】(卡号：'+cno+')执行挂失操作吗？','&#128274;','确认挂失',async function(){
+        const r=await apiPost('/card-holder/report-loss/'+cno);
+        if(r&&r.code===200){showToast('挂失成功','success');loadAllHolders();}
+        else{showToast((r&&r.msg)||'挂失失败','error');}
+      });
+    }
+    async function quickUnfreeze(cno,name){
+      showConfirm('确认解冻','确定要对【'+name+'】(卡号：'+cno+')执行解冻操作吗？','&#9989;','确定解冻',async function(){
+        const r=await apiPost('/card-holder/unfreeze/'+cno);
+        if(r&&r.code===200){showToast('解冻成功','success');loadAllHolders();}
+        else{showToast((r&&r.msg)||'解冻失败','error');}
+      });
+    }
+    async function quickCancel(cno,name){
+      if(!confirm('注销后不可恢复！确定要注销【'+name+'】的饭卡吗？'))return;
+      const r=await fetch(API_BASE+'/card-holder/cancel?cardNumber='+encodeURIComponent(cno),{method:'POST'}).then(r=>r.json());
+      if(r&&r.code===200){showToast('注销成功','success');loadAllHolders();}
+      else{showToast((r&&r.msg)||'注销失败','error');}
+    }
+
+    document.addEventListener('DOMContentLoaded',function(){loadAllHolders();});
+  </script>
+</body>
+</html>

@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>校园饭卡管理系统 - 管理员登录</title>
+  <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+  <div class="login-wrapper">
+    <div class="login-card">
+      <!-- 头部 -->
+      <div class="login-header">
+        <div class="logo-icon">&#127860;</div>
+        <h1>校园饭卡管理系统</h1>
+        <p>Campus Meal Card Management System</p>
+      </div>
+
+      <!-- 登录表单 -->
+      <form id="loginForm" onsubmit="return handleLogin(event)">
+        <!-- 用户名 -->
+        <div class="form-group">
+          <label for="username">管理员账号</label>
+          <div class="input-prefix">
+            <span class="prefix">&#128100;</span>
+            <input type="text" id="username" class="form-control"
+                   placeholder="请输入管理员账号" autocomplete="username"
+                   required minlength="2" maxlength="20">
+          </div>
+          <div class="form-error" id="usernameError"></div>
+        </div>
+
+        <!-- 密码 -->
+        <div class="form-group">
+          <label for="password">登录密码</label>
+          <div class="input-prefix">
+            <span class="prefix">&#128274;</span>
+            <input type="password" id="password" class="form-control"
+                   placeholder="请输入密码" autocomplete="current-password"
+                   required minlength="3" maxlength="30">
+          </div>
+          <div class="form-error" id="passwordError"></div>
+        </div>
+
+        <!-- 验证码 -->
+        <div class="form-group">
+          <label for="captcha">验证码</label>
+          <div class="captcha-row">
+            <input type="text" id="captcha" class="form-control"
+                   placeholder="请输入验证码" maxlength="4"
+                   style="text-transform: uppercase;" required>
+            <div class="captcha-img" id="captchaCanvas" title="点击刷新验证码"
+                 onclick="refreshCaptcha()"></div>
+          </div>
+          <div class="form-error" id="captchaError"></div>
+        </div>
+
+        <!-- 记住我 & 错误提示 -->
+        <div class="flex-between mb-16" style="align-items: center;">
+          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px; color: var(--text-secondary);">
+            <input type="checkbox" id="rememberMe" style="width: 16px; height: 16px; cursor: pointer;"> 记住登录状态
+          </label>
+          <a href="#" onclick="showToast('请联系超级管理员重置密码','warning')" style="font-size: 13px;">忘记密码?</a>
+        </div>
+
+        <!-- 登录按钮 -->
+        <button type="submit" class="btn btn-primary btn-lg btn-block" id="loginBtn">
+          &#128274; 登 录 系 统
+        </button>
+
+        <!-- 全局错误提示区 -->
+        <div id="globalError" class="text-danger text-center mt-16" style="display:none; font-size:13px;"></div>
+      </form>
+
+      <!-- 底部信息 -->
+      <div class="text-center mt-24" style="border-top:1px solid var(--border-light); padding-top:16px;">
+        <p style="font-size:12px; color:var(--text-hint);">
+          &copy; 2026 校园饭卡管理系统 v1.0 &nbsp;|&nbsp; 技术支持：信息管理中心
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast容器 -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script>
+    // ========== 验证码相关 ==========
+    let currentCaptcha = '';
+
+    function generateCaptcha() {
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      let code = '';
+      for (let i = 0; i < 4; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return code;
+    }
+
+    function refreshCaptcha() {
+      currentCaptcha = generateCaptcha();
+      const el = document.getElementById('captchaCanvas');
+      // 添加干扰线效果
+      const colors = ['#1890ff', '#52c41a', '#faad14', '#ff4d4f', '#722ed1'];
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      el.style.color = color;
+      // 轻微旋转效果
+      const rotate = (Math.random() - 0.5) * 6;
+      el.style.transform = `rotate(${rotate}deg)`;
+      el.textContent = currentCaptcha;
+    }
+
+    // 初始化验证码
+    refreshCaptcha();
+
+    // ========== 表单校验 ==========
+    function validateField(fieldId, errorId, rules) {
+      const field = document.getElementById(fieldId);
+      const error = document.getElementById(errorId);
+      const value = field.value.trim();
+
+      if (rules.required && !value) {
+        showError(field, error, rules.requiredMsg || '此字段为必填项');
+        return false;
+      }
+      if (rules.minlength && value.length < rules.minlength) {
+        showError(field, error, `长度不能少于 ${rules.minlength} 个字符`);
+        return false;
+      }
+      if (rules.maxlength && value.length > rules.maxlength) {
+        showError(field, error, `长度不能超过 ${rules.maxlength} 个字符`);
+        return false;
+      }
+      if (rules.pattern && !rules.pattern.test(value)) {
+        showError(field, error, rules.patternMsg || '格式不正确');
+        return false;
+      }
+
+      clearError(field, error);
+      return true;
+    }
+
+    function showError(field, error, msg) {
+      field.classList.add('error');
+      error.textContent = msg;
+      error.classList.add('show');
+    }
+
+    function clearError(field, error) {
+      field.classList.remove('error');
+      error.textContent = '';
+      error.classList.remove('show');
+    }
+
+    function clearAllErrors() {
+      document.querySelectorAll('.form-control').forEach(el => el.classList.remove('error'));
+      document.querySelectorAll('.form-error').forEach(el => { el.textContent=''; el.classList.remove('show'); });
+      const ge = document.getElementById('globalError');
+      if (ge) { ge.style.display='none'; ge.textContent=''; }
+    }
+
+    // 实时校验
+    document.getElementById('username').addEventListener('blur', function () {
+      validateField('username', 'usernameError', {
+        required: true, requiredMsg: '请输入管理员账号',
+        minlength: 2, maxlength: 20
+      });
+    });
+    document.getElementById('password').addEventListener('blur', function () {
+      validateField('password', 'passwordError', {
+        required: true, requiredMsg: '请输入登录密码',
+        minlength: 3, maxlength: 30
+      });
+    });
+    document.getElementById('captcha').addEventListener('blur', function () {
+      validateField('captcha', 'captchaError', {
+        required: true, requiredMsg: '请输入验证码'
+      });
+    });
+
+    // 回车提交
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') handleLogin(e);
+    });
+
+    // ========== 登录处理 ==========
+    async function handleLogin(e) {
+      if (e) e.preventDefault();
+      clearAllErrors();
+
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value.trim();
+      const captchaInput = document.getElementById('captcha').value.trim().toUpperCase();
+
+      // 校验各字段
+      let valid = true;
+      valid = validateField('username', 'usernameError', {required:true,requiredMsg:'请输入管理员账号',minlength:2}) && valid;
+      valid = validateField('password', 'passwordError', {required:true,requiredMsg:'请输入登录密码',minlength:3}) && valid;
+      valid = validateField('captcha', 'captchaError', {required:true,requiredMsg:'请输入验证码'}) && valid;
+
+      if (!valid) return false;
+
+      // 验证码校验（前端模拟）
+      if (captchaInput !== currentCaptcha) {
+        const captchaEl = document.getElementById('captcha');
+        const errEl = document.getElementById('captchaError');
+        showError(captchaEl, errEl, '验证码错误，请重新输入');
+        refreshCaptcha();
+        document.getElementById('captcha').value = '';
+        document.getElementById('captcha').focus();
+        return false;
+      }
+
+      // 模拟登录API请求
+      const btn = document.getElementById('loginBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="loading-spinner" style="width:18px;height:18px;border-width:2px;"></span>&nbsp;&nbsp;登录中...';
+
+      try {
+        // 模拟网络延迟 + 登录验证
+        await new Promise(resolve => setTimeout(resolve, 1200));
+
+        // 演示模式：任意非空账号密码即可登录
+        // 生产环境此处应调用后端 /api/auth/login 接口
+        if (username && password) {
+          showToast('登录成功，正在跳转...', 'success');
+          setTimeout(() => {
+            window.location.href = '/index';
+          }, 800);
+        } else {
+          throw new Error('用户名或密码不能为空');
+        }
+      } catch (err) {
+        showToast(err.message || '登录失败，请重试', 'error');
+        refreshCaptcha();
+        document.getElementById('captcha').value = '';
+        btn.disabled = false;
+        btn.innerHTML = '&#128274; 登 录 系 统';
+      }
+
+      return false;
+    }
+
+    // ========== Toast 提示 ==========
+    function showToast(message, type) {
+      type = type || 'info';
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = 'toast ' + type;
+
+      const icons = { success: '&#10004;', error: '&#10006;', warning: '&#9888;', info: '&#8505;' };
+      toast.innerHTML = '<span>' + (icons[type] || icons.info) + '</span><span>' + message + '</span>';
+      container.appendChild(toast);
+
+      setTimeout(function () {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(60px)';
+        toast.style.transition = 'all 0.3s ease';
+        setTimeout(function () { toast.remove(); }, 300);
+      }, 3000);
+    }
+  </script>
+</body>
+</html>

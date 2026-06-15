@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>充值/消费 - 校园饭卡管理系统</title>
+  <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- 侧边栏 -->
+    <aside class="sidebar">
+      <div class="sidebar-header"><div class="logo-icon-small">&#127860;</div><span>饭卡管理</span></div>
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">主要功能</div>
+        <a href="/index" class="nav-item"><span class="nav-icon">&#127967;</span><span>系统首页</span></a>
+        <a href="/register" class="nav-item"><span class="nav-icon">&#128179;</span><span>开卡注册</span></a>
+        <a href="/recharge-consume" class="nav-item active"><span class="nav-icon">&#128181;</span><span>充值/消费</span></a>
+        <a href="/loss-management" class="nav-item"><span class="nav-icon">&#128274;</span><span>挂失/解冻</span></a>
+        <a href="/transactions" class="nav-item"><span class="nav-icon">&#128200;</span><span>交易记录</span></a>
+        <div class="nav-section-title">系统管理</div>
+        <a href="/settings" class="nav-item"><span class="nav-icon">&#9881;</span><span>备份与设置</span></a>
+      </nav>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div class="topbar-left"><span class="breadcrumb"><strong>控制面板</strong> / 充值/消费</span></div>
+        <div class="topbar-right">
+          <div class="user-info"><div class="avatar">A</div><span style="font-size:13px;font-weight:500;">管理员</span></div>
+          <a href="/login" class="btn btn-default btn-sm" onclick="return confirm('确定要退出？')">&#10149; 退出</a>
+        </div>
+      </header>
+
+      <div class="page-content">
+        <div class="page-header">
+          <h2>&#128181; 充值与消费操作</h2>
+          <p>对指定饭卡进行充值或模拟消费操作，支持实时查询当前余额</p>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 480px 1fr; gap:24px; align-items:start;">
+          <!-- 左侧：操作面板 -->
+          <div>
+            <!-- Tab切换 -->
+            <div class="card" style="margin-bottom:16px;">
+              <div style="display:flex;border-bottom:1px solid var(--border-light);">
+                <button id="tabRecharge" class="tab-btn active"
+                        style="flex:1;height:48px;border:none;background:none;font-size:15px;font-weight:600;cursor:pointer;color:var(--primary);border-bottom:2px solid var(--primary);transition:var(--transition);"
+                        onclick="switchTab('recharge')">&#128181; 充值</button>
+                <button id="tabConsume" class="tab-btn"
+                        style="flex:1;height:48px;border:none;background:none;font-size:15px;font-weight:600;cursor:pointer;color:var(--text-hint);border-bottom:2px solid transparent;transition:var(--transition);"
+                        onclick="switchTab('consume')">&#128179; 消费</button>
+              </div>
+
+              <div class="card-body">
+                <!-- 充值表单 -->
+                <form id="rechargeForm" onsubmit="return handleRecharge(event)">
+                  <div class="form-group">
+                    <label for="rchCardNo"><span class="text-danger">*</span> 饭卡号</label>
+                    <input type="text" id="rchCardNo" class="form-control"
+                           placeholder="输入或搜索卡号" required list="cardNoList"
+                           onblur="queryCardInfo(this.value)">
+                    <datalist id="cardNoList"></datalist>
+                    <div class="form-error" id="rchCardNoErr"></div>
+                  </div>
+
+                  <!-- 当前余额显示 -->
+                  <div id="currentBalanceDisplay" style="background:#f6ffed;border:1px solid #b7eb8f;border-radius:6px;padding:14px;margin-bottom:16px;display:none;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                      <span style="font-size:13px;color:var(--text-secondary);">当前余额</span>
+                      <span style="font-size:22px;font-weight:700;color:var(--success);" id="curBalAmount">0.00</span>
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="rchAmount"><span class="text-danger">*</span> 充值金额 (元)</label>
+                    <input type="number" id="rchAmount" class="form-control"
+                           placeholder="请输入充值金额" required min="0.01" max="9999.99" step="0.01">
+                    <div class="form-error" id="rchAmountErr"></div>
+                  </div>
+
+                  <!-- 快捷金额按钮 -->
+                  <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+                    <button type="button" class="btn btn-default btn-sm quick-amt" onclick="setAmount('rchAmount',10)">￥10</button>
+                    <button type="button" class="btn btn-default btn-sm quick-amt" onclick="setAmount('rchAmount',20)">￥20</button>
+                    <button type="button" class="btn btn-default btn-sm quick-amt" onclick="setAmount('rchAmount',50)">￥50</button>
+                    <button type="button" class="btn btn-default btn-sm quick-amt" onclick="setAmount('rchAmount',100)">￥100</button>
+                    <button type="button" class="btn btn-default btn-sm quick-amt" onclick="setAmount('rchAmount',200)">￥200</button>
+                    <button type="button" class="btn btn-default btn-sm quick-amt" onclick="setAmount('rchAmount',500)">￥500</button>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="rchRemark">备注</label>
+                    <input type="text" id="rchRemark" class="form-control" placeholder="选填备注信息" maxlength="100">
+                  </div>
+
+                  <button type="submit" class="btn btn-success btn-lg btn-block" id="rchSubmitBtn">
+                    &#10004; 确认充值
+                  </button>
+                </form>
+
+                <!-- 消费表单（默认隐藏） -->
+                <form id="consumeForm" onsubmit="return handleConsume(event)" style="display:none;">
+                  <div class="form-group">
+                    <label for="csmCardNo"><span class="text-danger">*</span> 饭卡号</label>
+                    <input type="text" id="csmCardNo" class="form-control"
+                           placeholder="输入或搜索卡号" required list="cardNoList2"
+                           onblur="queryCardInfo(this.value,'csm')">
+                    <datalist id="cardNoList2"></datalist>
+                    <div class="form-error" id="csmCardNoErr"></div>
+                  </div>
+
+                  <div id="csmBalanceDisplay" style="background:#fffbe6;border:1px solid #ffe58f;border-radius:6px;padding:14px;margin-bottom:16px;display:none;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                      <span style="font-size:13px;color:var(--text-secondary);">可用余额</span>
+                      <span style="font-size:22px;font-weight:700;color:#d48806;" id="csmBalAmount">0.00</span>
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="csmAmount"><span class="text-danger">*</span> 消费金额 (元)</label>
+                    <input type="number" id="csmAmount" class="form-control"
+                           placeholder="请输入消费金额" required min="0.01" max="9999.99" step="0.01">
+                    <div class="form-error" id="csmAmountErr"></div>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="csmRemark">消费说明</label>
+                    <select id="csmRemark" class="form-control">
+                      <option value="食堂就餐">食堂就餐</option>
+                      <option value="超市购物">超市购物</option>
+                      <option value="开水房">开水房</option>
+                      <option value="洗浴中心">洗浴中心</option>
+                      <option value="其他消费">其他消费</option>
+                    </select>
+                  </div>
+
+                  <div style="background:#fff2f0;border:1px solid #ffa39e;border-radius:6px;padding:12px;font-size:13px;color:#cf1322;margin-bottom:16px;">
+                    &#9888; <strong>注意：</strong>消费金额不能超过饭卡当前余额，否则操作将被拒绝。
+                  </div>
+
+                  <button type="submit" class="btn btn-warning btn-lg btn-block" id="csmSubmitBtn">
+                    &#128179; 确认消费
+                  </button>
+                </form>
+              </div>
+            </div>
+
+            <!-- 操作日志预览 -->
+            <div class="card">
+              <div class="card-header"><h3>&#128340; 最近操作</h3></div>
+              <div class="card-body" id="operationLog" style="max-height:240px;overflow-y:auto;font-size:13px;">
+                <p class="text-muted text-center">暂无操作记录</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 右侧：持卡者列表 & 今日交易汇总 -->
+          <div>
+            <!-- 持卡者列表 -->
+            <div class="card">
+              <div class="card-header">
+                <h3>&#128101; 持卡者列表</h3>
+                <input type="text" id="searchHolderInput" class="form-control" placeholder="搜索姓名/卡号..."
+                       style="height:32px;width:180px;font-size:13px;" oninput="filterHolders(this.value)">
+              </div>
+              <div class="card-body" style="padding:0;">
+                <div class="table-wrapper">
+                  <table class="data-table">
+                    <thead><tr><th>卡号</th><th>姓名</th><th>类型</th><th>余额</th><th>状态</th><th>操作</th></tr></thead>
+                    <tbody id="holderTableBody">
+                      <tr><td colspan="6" class="empty-state"><div class="empty-icon">&#8987;</div><p>加载中...</p></td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- 今日交易汇总 -->
+            <div class="card mt-16">
+              <div class="card-header"><h3>&#128202; 今日交易汇总</h3></div>
+              <div class="card-body">
+                <div class="stats-row" style="margin-bottom:0;">
+                  <div class="stat-card">
+                    <div class="stat-icon green">&#8593;</div>
+                    <div class="stat-info">
+                      <div class="stat-value" id="todayRechargeTotal">￥0.00</div>
+                      <div class="stat-label">今日充值总额</div>
+                    </div>
+                  </div>
+                  <div class="stat-card">
+                    <div class="stat-icon red">&#8595;</div>
+                    <div class="stat-info">
+                      <div class="stat-value" id="todayConsumeTotal">￥0.00</div>
+                      <div class="stat-label">今日消费总额</div>
+                    </div>
+                  </div>
+                  <div class="stat-card">
+                    <div class="stat-icon blue">&#128200;</div>
+                    <div class="stat-info">
+                      <div class="stat-value" id="todayTxnCount">0</div>
+                      <div class="stat-label">今日交易笔数</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Toast容器 -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script>
+    const API_BASE='/api';
+
+    async function apiGet(u){try{const r=await fetch(API_BASE+u);return await r.json();}catch(e){return null;}}
+    async function apiPostUrl(u){try{const r=await fetch(API_BASE+u,{method:'POST'});return await r.json();}catch(e){return null;}}
+
+    function formatMoney(v){return v==null?'0.00':Number(v).toFixed(2);}
+    function formatFullDate(dt){if(!dt)return '--';return new Date(dt).toLocaleString('zh-CN',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'});}
+    function statusTag(s){return{1:'<span class="tag tag-success">正常</span>',2:'<span class="tag tag-warning">已挂失</span>',3:'<span class="tag tag-danger">已注销</span>'}[s]||'?';}
+    function typeLabel(t){return t===1?'<span class="tag tag-info">学生</span>':'<span class="tag tag-default">教职工</span>';}
+
+    function showToast(msg,t){
+      t=t||'info';const c=document.getElementById('toastContainer');
+      const el=document.createElement('div');el.className='toast '+t;
+      const ic={success:'&#10004;',error:'&#10006;',warning:'&#9888;',info:'&#8505;'};
+      el.innerHTML='<span>'+(ic[t]||ic.info)+'</span><span>'+msg+'</span>';
+      c.appendChild(el);
+      setTimeout(()=>{el.style.opacity='0';el.style.transform='translateX(60px)';el.style.transition='all .3s ease';setTimeout(()=>el.remove(),300);},3000);
+    }
+
+    function addLog(msg){
+      const el=document.getElementById('operationLog');
+      const time=new Date().toLocaleTimeString('zh-CN');
+      const div=document.createElement('div');
+      div.style.cssText='padding:6px 0;border-bottom:1px solid var(--border-light);color:var(--text-secondary);';
+      div.innerHTML='<span style="color:var(--text-hint);">'+time+'</span> - '+msg;
+      if(el.querySelector('.text-muted'))el.innerHTML='';
+      el.insertBefore(div,el.firstChild);
+    }
+
+    // ========== Tab 切换 ==========
+    function switchTab(tab){
+      const trch=document.getElementById('tabRecharge');
+      const tcsm=document.getElementById('tabConsume');
+      const frch=document.getElementById('rechargeForm');
+      const fcsm=document.getElementById('consumeForm');
+
+      if(tab==='recharge'){
+        trch.style.color='var(--primary)';trch.style.borderBottomColor='var(--primary)';
+        tcsm.style.color='var(--text-hint)';tcsm.style.borderBottomColor='transparent';
+        frch.style.display='block';fcsm.style.display='none';
+      }else{
+        tcsm.style.color='var(--primary)';tcsm.style.borderBottomColor='var(--primary)';
+        trch.style.color='var(--text-hint)';trch.style.borderBottomColor='transparent';
+        fcsm.style.display='block';frch.style.display='none';
+      }
+    }
+
+    function setAmount(fieldId,val){document.getElementById(fieldId).value=val;}
+
+    // ========== 查询卡信息 ==========
+    let allHolders=[];
+    async function queryCardInfo(cardNo,prefix){
+      prefix=prefix||'rch';
+      cardNo=(cardNo||'').trim();
+      const dispEl=document.getElementById(prefix==='rch'?'currentBalanceDisplay':'csmBalanceDisplay');
+      const amtEl=document.getElementById(prefix==='rch'?'curBalAmount':'csmBalAmount');
+
+      if(!cardNo){dispEl.style.display='none';return;}
+      const res=await apiGet('/card-holder/by-card/'+encodeURIComponent(cardNo));
+      if(res && res.code===200 && res.data){
+        amtEl.textContent=formatMoney(res.data.balance);
+        dispEl.style.display='block';
+      }else{
+        dispEl.style.display='none';
+      }
+    }
+
+    // ========== 充值操作 ==========
+    async function handleRecharge(e){
+      e.preventDefault();
+      const cardNo=document.getElementById('rchCardNo').value.trim();
+      const amount=document.getElementById('rchAmount').value;
+      const remark=document.getElementById('rchRemark').value.trim();
+
+      let ok=true;
+      if(!cardNo){document.getElementById('rchCardNoErr').textContent='请输入卡号';document.getElementById('rchCardNoErr').classList.add('show');ok=false;}
+      if(!amount||isNaN(amount)||parseFloat(amount)<=0){document.getElementById('rchAmountErr').textContent='请输入有效金额';document.getElementById('rchAmountErr').classList.add('show');ok=false;}
+      if(!ok)return false;
+
+      const btn=document.getElementById('rchSubmitBtn');btn.disabled=true;btn.innerHTML='<span class="loading-spinner" style="width:18px;height:18px;"></span> 处理中...';
+
+      const res=await fetch(API_BASE+'/card-holder/recharge?cardNumber='+encodeURIComponent(cardNo)+'&amount='+parseFloat(amount),{method:'POST'}).then(r=>r.json());
+
+      if(res && res.code===200){
+        showToast('充值成功！新余额：'+formatMoney(res.data),'success');
+        addLog('<span class="text-success">[充值]</span> 卡号 '+cardNo+' +￥'+parseFloat(amount).toFixed(2)+' → 余额 ￥'+formatMoney(res.data));
+        document.getElementById('rchAmount').value='';
+        queryCardInfo(cardNo); loadHolders(); loadTodaySummary();
+      }else{
+        showToast((res&&res.msg)||'充值失败','error');
+        addLog('<span class="text-danger">[充值失败]</span> '+(res&&res.msg||'未知错误'));
+      }
+      btn.disabled=false;btn.innerHTML='&#10004; 确认充值';return false;
+    }
+
+    // ========== 消费操作 ==========
+    async function handleConsume(e){
+      e.preventDefault();
+      const cardNo=document.getElementById('csmCardNo').value.trim();
+      const amount=document.getElementById('csmAmount').value;
+      const remark=document.getElementById('csmRemark').value;
+
+      let ok=true;
+      if(!cardNo){document.getElementById('csmCardNoErr').textContent='请输入卡号';document.getElementById('csmCardNoErr').classList.add('show');ok=false;}
+      if(!amount||isNaN(amount)||parseFloat(amount)<=0){document.getElementById('csmAmountErr').textContent='请输入有效金额';document.getElementById('csmAmountErr').classList.add('show');ok=false;}
+      if(!ok)return false;
+
+      const btn=document.getElementById('csmSubmitBtn');btn.disabled=true;btn.innerHTML='<span class="loading-spinner" style="width:18px;height:18px;"></span> 处理中...';
+
+      const res=await fetch(API_BASE+'/card-holder/consume?cardNumber='+encodeURIComponent(cardNo)+'&amount='+parseFloat(amount),{method:'POST'}).then(r=>r.json());
+
+      if(res && res.code===200){
+        showToast('消费成功！新余额：'+formatMoney(res.data),'success');
+        addLog('<span class="text-danger">[消费]</span> 卡号 '+cardNo+' -￥'+parseFloat(amount).toFixed(2)+' ('+remark+') → 余额 ￥'+formatMoney(res.data));
+        document.getElementById('csmAmount').value='';
+        queryCardInfo(cardNo,'csm'); loadHolders(); loadTodaySummary();
+      }else{
+        showToast((res&&res.msg)||'消费失败','error');
+        addLog('<span class="text-danger">[消费失败]</span> '+(res&&res.msg||'未知错误'));
+      }
+      btn.disabled=false;btn.innerHTML='&#128179; 确认消费';return false;
+    }
+
+    // ========== 加载持卡者 ==========
+    async function loadHolders(){
+      const tbody=document.getElementById('holderTableBody');
+      const res=await apiGet('/card-holder');
+      if(res && res.code===200 && Array.isArray(res.data)){
+        allHolders=res.data;
+        renderHolders(allHolders);
+        populateDatalists(res.data);
+      }else{
+        tbody.innerHTML='<tr><td colspan="6" class="empty-state"><div class="empty-icon">&#9888;</div><p>加载失败</p></td></tr>';
+      }
+    }
+
+    function renderHolders(list){
+      const tbody=document.getElementById('holderTableBody');
+      if(list.length===0){
+        tbody.innerHTML='<tr><td colspan="6" class="empty-state"><div class="empty-icon">&#128101;</div><p>暂无数据</p></td></tr>';
+        return;
+      }
+      tbody.innerHTML=list.map(h=>{
+        const canOp=h.status===1;
+        return `<tr>
+          <td><strong>${h.cardNumber||'--'}</strong></td>
+          <td>${h.name||'--'}</td>
+          <td>${typeLabel(h.type)}</td>
+          <td><strong style="color:var(--success);">${formatMoney(h.balance)}</strong></td>
+          <td>${statusTag(h.status)}</td>
+          <td>
+            ${canOp?`<button class="btn btn-success btn-sm" onclick="quickOp('${h.cardNumber}','rch')">充</button>
+                     <button class="btn btn-warning btn-sm" onclick="quickOp('${h.cardNumber}','csm')">消</button>`
+                   :`<span class="text-muted" style="font-size:12px;">不可操作</span>`}
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    function filterHolders(keyword){
+      const kw=(keyword||'').toLowerCase();
+      if(!kw){renderHolders(allHolders);return;}
+      const filtered=allHolders.filter(h =>
+        (h.name||'').toLowerCase().includes(kw)||(h.cardNumber||'').includes(kw)
+      );
+      renderHolders(filtered);
+    }
+
+    function quickOp(cardNo,target){
+      if(target==='rch'){
+        switchTab('recharge');
+        document.getElementById('rchCardNo').value=cardNo;
+        queryCardInfo(cardNo);
+        document.getElementById('rchAmount').focus();
+      }else{
+        switchTab('consume');
+        document.getElementById('csmCardNo').value=cardNo;
+        queryCardInfo(cardNo,'csm');
+        document.getElementById('csmAmount').focus();
+      }
+    }
+
+    function populateDatalists(list){
+      const nos=list.filter(h=>h.status===1).map(h=>h.cardNumber).filter(Boolean);
+      const html=nos.map(n=>`<option value="${n}">`).join('');
+      document.getElementById('cardNoList').innerHTML=html;
+      document.getElementById('cardNoList2').innerHTML=html;
+    }
+
+    // ========== 今日汇总 ==========
+    async function loadTodaySummary(){
+      const res=await apiGet('/transaction');
+      if(res && res.code===200 && Array.isArray(res.data)){
+        const today=new Date().toDateString();
+        const todayTxns=res.data.filter(t=>new Date(t.transactionTime).toDateString()===today);
+        let rechargeTotal=0, consumeTotal=0;
+        todayTxns.forEach(t=>{
+          if(t.transactionType===1)rechargeTotal+=Number(t.amount||0);
+          else consumeTotal+=Number(t.amount||0);
+        });
+        document.getElementById('todayRechargeTotal').textContent='￥'+rechargeTotal.toFixed(2);
+        document.getElementById('todayConsumeTotal').textContent='￥'+consumeTotal.toFixed(2);
+        document.getElementById('todayTxnCount').textContent=todayTxns.length;
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded',function(){loadHolders();loadTodaySummary();});
+  </script>
+</body>
+</html>

@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>备份与设置 - 校园饭卡管理系统</title>
+  <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- 侧边栏 -->
+    <aside class="sidebar">
+      <div class="sidebar-header"><div class="logo-icon-small">&#127860;</div><span>饭卡管理</span></div>
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">主要功能</div>
+        <a href="/index" class="nav-item"><span class="nav-icon">&#127967;</span><span>系统首页</span></a>
+        <a href="/register" class="nav-item"><span class="nav-icon">&#128179;</span><span>开卡注册</span></a>
+        <a href="/recharge-consume" class="nav-item"><span class="nav-icon">&#128181;</span><span>充值/消费</span></a>
+        <a href="/loss-management" class="nav-item"><span class="nav-icon">&#128274;</span><span>挂失/解冻</span></a>
+        <a href="/transactions" class="nav-item"><span class="nav-icon">&#128200;</span><span>交易记录</span></a>
+        <div class="nav-section-title">系统管理</div>
+        <a href="/settings" class="nav-item active"><span class="nav-icon">&#9881;</span><span>备份与设置</span></a>
+      </nav>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div class="topbar-left"><span class="breadcrumb"><strong>控制面板</strong> / 备份与系统设置</span></div>
+        <div class="topbar-right">
+          <div class="user-info"><div class="avatar">A</div><span style="font-size:13px;font-weight:500;">管理员</span></div>
+          <a href="/login" class="btn btn-default btn-sm" onclick="return confirm('确定要退出？')">&#10149; 退出</a>
+        </div>
+      </header>
+
+      <div class="page-content">
+        <!-- 页面标题 -->
+        <div class="page-header">
+          <h2>&#9881; 数据备份与系统设置</h2>
+          <p>管理系统数据备份、恢复以及基本系统配置参数</p>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:24px;">
+          <!-- 左列：数据备份 -->
+          <div>
+            <!-- 手动备份操作 -->
+            <div class="card" style="margin-bottom:20px;">
+              <div class="card-header">
+                <h3>&#128190; 数据备份</h3>
+              </div>
+              <div class="card-body">
+                <div style="background:#e6f7ff;border:1px solid #91d5ff;border-radius:6px;padding:16px;margin-bottom:20px;font-size:14px;color:#0050b3;line-height:1.7;">
+                  &#8505; <strong>备份说明：</strong><br>
+                  系统将导出全部持卡者信息和交易记录为 SQL INSERT 格式文件。<br>
+                  备份文件存储在服务器 <code style="background:#f0f0f0;padding:1px 5px;border-radius:3px;">backup/</code> 目录下。<br>
+                  建议定期执行数据备份以确保数据安全。
+                </div>
+
+                <button class="btn btn-primary btn-lg btn-block" id="backupBtn" onclick="doBackup()">
+                  &#128190; 立即执行全量备份
+                </button>
+
+                <!-- 备份结果 -->
+                <div id="backupResult" style="margin-top:16px;display:none;">
+                  <div class="card" style="border-color:var(--success);background:#f6ffed;">
+                    <div class="card-body text-center" id="backupResultContent"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 备份历史记录 -->
+            <div class="card">
+              <div class="card-header">
+                <h3>&#128196; 备份记录</h3>
+                <button class="btn btn-sm btn-default" onclick="loadBackupHistory()">刷新</button>
+              </div>
+              <div class="card-body" id="backupHistoryList" style="padding:0;max-height:360px;overflow-y:auto;">
+                <div class="empty-state" style="padding:32px;"><p class="text-muted">暂无备份记录</p></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 右列：系统信息 & 设置 -->
+          <div>
+            <!-- 系统信息概览 -->
+            <div class="card" style="margin-bottom:20px;">
+              <div class="card-header">
+                <h3>&#128187; 系统信息概览</h3>
+              </div>
+              <div class="card-body">
+                <ul class="setting-list" id="systemInfoList">
+                  <li class="setting-item">
+                    <div class="setting-label">
+                      <h4>系统名称</h4>
+                      <p>Campus Meal Card System v1.0</p>
+                    </div>
+                    <span class="tag tag-info">运行中</span>
+                  </li>
+                  <li class="setting-item">
+                    <div class="setting-label">
+                      <h4>数据库类型</h4>
+                      <p>MySQL (Druid 连接池)</p>
+                    </div>
+                    <span class="tag tag-success">已连接</span>
+                  </li>
+                  <li class="setting-item">
+                    <div class="setting-label">
+                      <h4>服务端口</h4>
+                      <p id="serverPort">8080</p>
+                    </div>
+                    <span class="tag tag-success">正常</span>
+                  </li>
+                  <li class="setting-item">
+                    <div class="setting-label">
+                      <h4>当前时间</h4>
+                      <p id="currentDateTime">--</p>
+                    </div>
+                    <button class="btn btn-sm btn-outline" onclick="updateTime()">刷新</button>
+                  </li>
+                  <li class="setting-item">
+                    <div class="setting-label">
+                      <h4>数据统计</h4>
+                      <p>持卡者：<strong id="infoHolderCount">--</strong> | 交易记录：<strong id="infoTxnCount">--</strong></p>
+                    </div>
+                    <button class="btn btn-sm btn-default" onclick="loadSystemInfo()">更新</button>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <!-- 系统设置项 -->
+            <div class="card">
+              <div class="card-header">
+                <h3>&#9881; 系统参数设置</h3>
+              </div>
+              <div class="card-body">
+                <ul class="setting-list">
+                  <li class="setting-item">
+                    <div class="setting-label">
+                      <h4>自动备份</h4>
+                      <p>开启后系统将每日自动执行数据备份（演示功能）</p>
+                    </div>
+                    <label class="switch">
+                      <input type="checkbox" id="autoBackupSwitch" onchange="toggleSetting('autoBackup',this.checked)">
+                      <span class="switch-slider"></span>
+                    </label>
+                  </li>
+                  <li class="setting-item">
+                    <div class="setting-label">
+                      <h4>操作日志记录</h4>
+                      <p>记录所有充值、消费、挂失等操作的日志</p>
+                    </div>
+                    <label class="switch">
+                      <input type="checkbox" id="logSwitch" checked onchange="toggleSetting('logging',this.checked)">
+                      <span class="switch-slider"></span>
+                    </label>
+                  </li>
+                  <li class="setting-item">
+                    <div class="setting-label">
+                      <h4>余额不足预警</h4>
+                      <p>当消费金额超过余额时显示警告提示</p>
+                    </div>
+                    <label class="switch">
+                      <input type="checkbox" id="warnSwitch" checked onchange="toggleSetting('lowBalanceWarn',this.checked)">
+                      <span class="switch-slider"></span>
+                    </label>
+                  </li>
+                  <li class="setting-item">
+                    <div class="setting-label">
+                      <h4>单次充值上限(元)</h4>
+                      <p>设置单次充值的最大金额限制</p>
+                    </div>
+                    <input type="number" id="rechargeLimitInput" class="form-control"
+                           style="width:100px;height:34px;" value="9999" min="100" max="99999"
+                           onchange="saveNumberSetting('rechargeLimit',this.value)">
+                  </li>
+                  <li class="setting-item">
+                    <div class="setting-label">
+                      <h4>单次消费上限(元)</h4>
+                      <p>设置单次消费的最大金额限制</p>
+                    </div>
+                    <input type="number" id="consumeLimitInput" class="form-control"
+                           style="width:100px;height:34px;" value="500" min="10" max="10000"
+                           onchange="saveNumberSetting('consumeLimit',this.value)">
+                  </li>
+                </ul>
+
+                <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border-light);">
+                  <button class="btn btn-primary" onclick="saveAllSettings()">&#128190; 保存所有设置</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Toast容器 -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script>
+    const API_BASE='/api';
+
+    async function apiGet(u){try{const r=await fetch(API_BASE+u);return await r.json();}catch(e){return null;}}
+
+    function showToast(msg,t){
+      t=t||'info';const c=document.getElementById('toastContainer');
+      const el=document.createElement('div');el.className='toast '+t;
+      const ic={success:'&#10004;',error:'&#10006;',warning:'&#9888;',info:'&#8505;'};
+      el.innerHTML='<span>'+(ic[t]||ic.info)+'</span><span>'+msg+'</span>';
+      c.appendChild(el);
+      setTimeout(()=>{el.style.opacity='0';el.style.transform='translateX(60px)';el.style.transition='all .3s ease';setTimeout(()=>el.remove(),300);},3000);
+    }
+
+    // ========== 执行备份 ==========
+    let isBackingUp=false;
+    async function doBackup(){
+      if(isBackingUp)return;
+      isBackingUp=true;
+
+      const btn=document.getElementById('backupBtn');
+      btn.disabled=true;
+      btn.innerHTML='<span class="loading-spinner" style="width:18px;height:18px;"></span>&nbsp;&nbsp;正在备份数据...';
+
+      try{
+        const res=await fetch(API_BASE+'/backup',{method:'POST'}).then(r=>r.json());
+
+        const resultDiv=document.getElementById('backupResult');
+        const contentEl=document.getElementById('backupResultContent');
+
+        if(res && res.code===200){
+          const filePath=res.data&&res.data.filePath?res.data.filePath:'未知路径';
+          contentEl.innerHTML=
+            '<div style="font-size:36px;margin-bottom:12px;">&#9989;</div>'
+            +'<h3 style="color:var(--success);margin-bottom:8px;">备份成功！</h3>'
+            +'<p style="font-size:13px;color:var(--text-secondary);line-height:1.8;">'
+            +'<strong>文件路径：</strong>'+filePath+'<br>'
+            +'<strong>备份时间：</strong>'+(new Date().toLocaleString('zh-CN'))
+            +'</p>';
+          resultDiv.style.display='block';
+          showToast(res.msg||'备份完成','success');
+          loadBackupHistory();
+        }else{
+          showToast((res&&res.msg)||'备份失败，请检查服务','error');
+          contentEl.innerHTML=
+            '<div style="font-size:36px;margin-bottom:12px;">&#10006;</div>'
+            +'<h3 style="color:var(--danger);margin-bottom:8px;">备份失败</h3>'
+            +'<p>'+(res&&res.msg||'请检查服务状态和权限')+'</p>';
+          resultDiv.style.display='block';
+        }
+      }catch(err){
+        showToast('备份请求失败：'+err.message,'error');
+      }
+
+      isBackingUp=false;
+      btn.disabled=false;
+      btn.innerHTML='&#128190; 立即执行全量备份';
+    }
+
+    // ========== 备份历史 ==========
+    async function loadBackupHistory(){
+      const listEl=document.getElementById('backupHistoryList');
+      // 模拟备份列表（实际应从后端获取备份目录下的文件列表）
+      const res=await apiGet('/transaction');
+      if(!res || res.code!==200){return;}
+
+      // 演示：生成模拟的备份记录
+      const now=new Date();
+      const records=[];
+      for(let i=0;i<5;i++){
+        const d=new Date(now);
+        d.setDate(d.getDate()-i*3);
+        records.push({
+          filename:'backup_'+d.toISOString().slice(0,10).replace(/-/g,'')
+              +String(d.getHours()).padStart(2,'0')+String(d.getMinutes()).padStart(2,'0')
+              +String(d.getSeconds()).padStart(2,'0')+'.sql',
+          time:d.toLocaleString('zh-CN'),
+          size:(Math.floor(Math.random()*800)+120)+' KB'
+        });
+      }
+
+      if(records.length===0){
+        listEl.innerHTML='<div class="empty-state" style="padding:32px;"><p class="text-muted">暂无备份记录</p></div>';
+        return;
+      }
+
+      listEl.innerHTML=records.map(r=>`
+        <div class="backup-record">
+          <div class="backup-file-icon">&#128190;</div>
+          <div class="backup-info">
+            <div class="filename">${r.filename}</div>
+            <div class="filetime">${r.time}</div>
+          </div>
+          <div class="filesize">${r.size}</div>
+        </div>
+      `).join('');
+    }
+
+    // ========== 系统信息 ==========
+    async function loadSystemInfo(){
+      const [holdersRes,txnRes]=await Promise.all([
+        apiGet('/card-holder'),
+        apiGet('/transaction')
+      ]);
+      if(holdersRes && holdersRes.code===200 && Array.isArray(holdersRes.data)){
+        document.getElementById('infoHolderCount').textContent=holdersRes.data.length;
+      }
+      if(txnRes && txnRes.code===200 && Array.isArray(txnRes.data)){
+        document.getElementById('infoTxnCount').textContent=txnRes.data.length;
+      }
+    }
+
+    function updateTime(){
+      document.getElementById('currentDateTime').textContent=
+        new Date().toLocaleString('zh-CN',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    }
+
+    // 定时更新时钟
+    setInterval(updateTime,1000);
+
+    // ========== 设置相关 ==========
+    function toggleSetting(key,val){
+      console.log('设置变更:',key,'=',val);
+      showToast(`已${val?'启用':'禁用'}该设置`,'info');
+    }
+
+    function saveNumberSetting(key,val){
+      if(val<=0){showToast('数值必须大于0','warning');return;}
+      showToast(`${key} 已设置为 ${val}`,'success');
+    }
+
+    function saveAllSettings(){
+      const settings={
+        autoBackup:document.getElementById('autoBackupSwitch').checked,
+        logging:document.getElementById('logSwitch').checked,
+        lowBalanceWarn:document.getElementById('warnSwitch').checked,
+        rechargeLimit:document.getElementById('rechargeLimitInput').value,
+        consumeLimit:document.getElementById('consumeLimitInput').value
+      };
+      console.log('保存设置:',settings);
+      showToast('系统设置已保存（演示模式）','success');
+    }
+
+    // ========== 初始化 ==========
+    document.addEventListener('DOMContentLoaded',function(){
+      updateTime();loadSystemInfo();loadBackupHistory();
+
+      // 从 localStorage 恢复设置
+      try {
+        const saved=localStorage.getItem('systemSettings');
+        if(saved){
+          const s=JSON.parse(saved);
+          if(s.autoBackup!==undefined)document.getElementById('autoBackupSwitch').checked=s.autoBackup;
+          if(s.logging!==undefined)document.getElementById('logSwitch').checked=s.logging;
+          if(s.lowBalanceWarn!==undefined)document.getElementById('warnSwitch').checked=s.lowBalanceWarn;
+          if(s.rechargeLimit)document.getElementById('rechargeLimitInput').value=s.rechargeLimit;
+          if(s.consumeLimit)document.getElementById('consumeLimitInput').value=s.consumeLimit;
+        }
+      } catch(e){}
+    });
+  </script>
+</body>
+</html>
