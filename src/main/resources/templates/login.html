@@ -1,392 +1,53 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>校园饭卡管理系统</title>
+  <!-- 外部样式（暖色食堂风） -->
+  <link rel="stylesheet" th:href="@{/css/style.css}">
+  <!-- 内联样式覆盖层级，确保食物漂浮可见 -->
   <style>
-    /* ========================================
-       全局变量 & 基础样式（暖色食堂风）
-    ======================================== */
-    :root {
-      --primary: #f39c12;
-      --primary-hover: #e67e22;
-      --primary-active: #d35400;
-      --primary-light: #fff3e0;
-      --success: #52c41a;
-      --warning: #faad14;
-      --danger: #ff4d4f;
-      --text-primary: #2c3e2f;
-      --text-secondary: #5a6b5a;
-      --text-hint: #8c8c8c;
-      --border: #ffe0a3;
-      --border-light: #fff0d0;
-      --bg-body: #fff9ef;
-      --bg-white: #fffef7;
-      --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
-      --shadow-md: 0 8px 20px rgba(0,0,0,0.12);
-      --shadow-lg: 0 20px 35px rgba(0,0,0,0.2);
-      --radius-sm: 8px;
-      --radius-md: 12px;
-      --radius-lg: 20px;
-      --radius-xl: 32px;
-      --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-      --transition: all 0.3s ease;
-    }
-
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      height: 100%;
-      font-family: var(--font-family);
-      font-size: 14px;
-      color: var(--text-primary);
-      background: radial-gradient(circle at 20% 30%, #ffb347, #ff8c00);
-      background-attachment: fixed;
-      line-height: 1.5;
-      overflow-x: hidden;
-    }
-
-    /* 登录主布局 - 居中卡片 */
-    .login-wrapper {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      padding: 20px;
-      position: relative;
-      z-index: 2;
-    }
-
-    /* 暖色食堂风卡片 */
-    .login-card {
-      background: var(--bg-white);
-      border-radius: 48px 24px 48px 24px;
-      box-shadow: 0 25px 45px rgba(0,0,0,0.2), 0 0 0 8px rgba(255,200,100,0.3);
-      width: 440px;
-      max-width: 100%;
-      padding: 38px 32px;
-      transition: all 0.3s ease;
-      border: 1px solid #ffd966;
-      position: relative;
-      z-index: 10;
-      overflow: hidden;
-    }
-
-    .login-card:hover {
-      border-radius: 24px 48px 24px 48px;
-      box-shadow: 0 30px 55px rgba(0,0,0,0.25);
-      transform: translateY(-5px);
-    }
-
-    /* 卡片光泽扫过效果 */
-    .login-card::after {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255,215,0,0.2), transparent);
-      transition: 0.6s;
-      pointer-events: none;
-    }
-
-    .login-card:hover::after {
-      left: 100%;
-    }
-
-    /* 头部 */
-    .login-header {
-      text-align: center;
-      margin-bottom: 28px;
-    }
-
-    .logo-icon {
-      width: 70px;
-      height: 70px;
-      background: #ffaa33;
-      border-radius: 28px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 18px;
-      font-size: 36px;
-      color: white;
-      box-shadow: 0 8px 20px rgba(255,140,0,0.4);
-    }
-
-    .login-header h1 {
-      font-size: 24px;
-      font-weight: 700;
-      color: #5a3e1b;
-      margin-bottom: 6px;
-    }
-
-    .login-header p {
-      font-size: 13px;
-      color: #b96f0f;
-    }
-
-    /* 表单组件 */
-    .form-group {
-      margin-bottom: 20px;
-    }
-
-    .form-group label {
-      display: block;
-      margin-bottom: 6px;
-      font-weight: 500;
-      color: var(--text-secondary);
-    }
-
-    .form-control {
-      width: 100%;
-      height: 44px;
-      padding: 8px 12px;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      font-size: 14px;
-      color: var(--text-primary);
-      background: white;
-      transition: var(--transition);
-      outline: none;
-    }
-
-    .form-control:focus {
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(243,156,18,0.2);
-    }
-
-    .form-control.error {
-      border-color: var(--danger);
-      box-shadow: 0 0 0 2px rgba(255,77,79,0.15);
-    }
-
-    .input-prefix {
-      position: relative;
-    }
-
-    .input-prefix .prefix {
-      position: absolute;
-      left: 14px;
-      top: 50%;
-      transform: translateY(-50%);
-      font-size: 16px;
-      color: var(--text-hint);
-    }
-
-    .input-prefix .form-control {
-      padding-left: 42px;
-    }
-
-    .form-error {
-      font-size: 12px;
-      color: var(--danger);
-      margin-top: 4px;
-      display: none;
-    }
-
-    .form-error.show {
-      display: block;
-    }
-
-    /* 验证码区域 */
-    .captcha-row {
-      display: flex;
-      gap: 12px;
-    }
-
-    .captcha-row .form-control {
-      flex: 1;
-    }
-
-    .captcha-img {
-      width: 110px;
-      height: 44px;
-      background: #f5f0e0;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-      font-weight: bold;
-      letter-spacing: 4px;
-      font-family: monospace;
-      transition: 0.2s;
-    }
-
-    /* 按钮系统 */
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      height: 46px;
-      padding: 0 24px;
-      border: none;
-      border-radius: 40px;
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: var(--transition);
-    }
-
-    .btn-primary {
-      background: linear-gradient(90deg, #f39c12, #e67e22);
-      color: white;
-      letter-spacing: 1px;
-    }
-
-    .btn-primary:hover {
-      background: linear-gradient(90deg, #e67e22, #d35400);
-      transform: scale(1.02);
-      box-shadow: 0 8px 20px rgba(230,126,34,0.5);
-    }
-
-    .btn-block {
-      width: 100%;
-    }
-
-    .btn-lg {
-      height: 48px;
-      font-size: 16px;
-    }
-
-    /* 辅助工具 */
-    .flex-between {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .text-center {
-      text-align: center;
-    }
-
-    .text-danger {
-      color: var(--danger);
-    }
-
-    .mt-16 {
-      margin-top: 16px;
-    }
-
-    .mt-24 {
-      margin-top: 24px;
-    }
-
-    .mb-16 {
-      margin-bottom: 16px;
-    }
-
-    /* Toast 容器 */
-    .toast-container {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      z-index: 1100;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .toast {
-      background: white;
-      border-radius: 12px;
-      padding: 10px 18px;
-      box-shadow: var(--shadow-md);
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      animation: slideInRight 0.3s ease;
-      border-left: 4px solid;
-    }
-
-    .toast.success { border-left-color: #52c41a; }
-    .toast.error { border-left-color: #ff4d4f; }
-    .toast.warning { border-left-color: #faad14; }
-    .toast.info { border-left-color: #1890ff; }
-
-    @keyframes slideInRight {
-      from { opacity: 0; transform: translateX(60px); }
-      to { opacity: 1; transform: translateX(0); }
-    }
-
-    /* 加载动画 */
-    .loading-spinner {
-      display: inline-block;
-      width: 18px;
-      height: 18px;
-      border: 2px solid rgba(255,255,255,0.3);
-      border-top-color: white;
-      border-radius: 50%;
-      animation: spin 0.6s linear infinite;
-    }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    /* ========== 全屏食物漂浮容器 ========== */
+    /* 确保浮动容器在背景之上，登录卡片之下 */
     .floating-container {
       position: fixed;
       top: 0;
       left: 0;
-      width: 100%;
-      height: 100vh;          /* 覆盖整个屏幕 */
+      width: 100vw;
+      height: 100vh;
       overflow: hidden;
-      pointer-events: none;   /* 鼠标穿透，不干扰操作 */
-      z-index: 1;
+      pointer-events: none;
+      z-index: 1 !important; /* 覆盖外部样式 */
     }
-
-    /* 食物粒子 */
+    .login-wrapper {
+      position: relative;
+      z-index: 2 !important;
+    }
+    .login-card {
+      position: relative;
+      z-index: 10 !important;
+    }
+    /* 确保食物粒子动画正确 */
     .food-particle {
       position: absolute;
       left: 0;
-      bottom: -40px;          /* 从底部稍下方开始 */
-      opacity: 0.65;
-      filter: drop-shadow(0 6px 8px rgba(0,0,0,0.15));
+      bottom: -50px;
+      opacity: 0.7;
+      filter: drop-shadow(0 6px 8px rgba(0,0,0,0.12));
       animation: floatFullScreen linear infinite;
-      will-change: transform;
+      will-change: transform, opacity;
       pointer-events: none;
+      visibility: visible;
     }
-
-    /* 全屏漂浮动画：从底部移动到顶部完全离开屏幕 */
     @keyframes floatFullScreen {
-      0% {
-        transform: translateY(0);
-        opacity: 0.5;
-      }
-      80% {
-        opacity: 0.9;
-      }
-      100% {
-        transform: translateY(-100vh);   /* 向上移动整个视口高度 */
-        opacity: 0;
-      }
-    }
-
-    /* 响应式适配 */
-    @media (max-width: 550px) {
-      .login-card {
-        padding: 28px 20px;
-      }
-      .logo-icon {
-        width: 55px;
-        height: 55px;
-        font-size: 28px;
-      }
+      0% { transform: translateY(0) rotate(0deg); opacity: 0.3; }
+      20% { opacity: 0.65; }
+      80% { opacity: 0.85; }
+      100% { transform: translateY(-105vh) rotate(25deg); opacity: 0; }
     }
   </style>
 </head>
-<body>
+<body class="login-page">
 
 <div class="login-wrapper">
   <div class="login-card">
@@ -396,12 +57,19 @@
       <p>Campus Meal Card · 智慧食堂</p>
     </div>
 
-    <form id="loginForm" onsubmit="return handleLogin(event)">
+    <!-- Spring Security 表单登录 -->
+    <form id="loginForm" action="/doLogin" method="POST">
+      <!-- 登录失败提示 -->
+      <div class="login-error-msg" id="loginErrorMsg">
+        ❌ 用户名或密码错误，请重新输入
+      </div>
+
       <div class="form-group">
-        <label for="username">管理员账号</label>
+        <label for="username">登录账号</label>
         <div class="input-prefix">
           <span class="prefix">👤</span>
-          <input type="text" id="username" class="form-control" placeholder="请输入管理员账号" autocomplete="username" required>
+          <input type="text" id="username" name="username" class="form-control"
+                 placeholder="请输入账号（管理员/学生/教职工）" autocomplete="username" required>
         </div>
         <div class="form-error" id="usernameError"></div>
       </div>
@@ -410,7 +78,8 @@
         <label for="password">登录密码</label>
         <div class="input-prefix">
           <span class="prefix">🔒</span>
-          <input type="password" id="password" class="form-control" placeholder="请输入密码" autocomplete="current-password" required>
+          <input type="password" id="password" name="password" class="form-control"
+                 placeholder="请输入密码" autocomplete="current-password" required>
         </div>
         <div class="form-error" id="passwordError"></div>
       </div>
@@ -418,7 +87,8 @@
       <div class="form-group">
         <label for="captcha">验证码</label>
         <div class="captcha-row">
-          <input type="text" id="captcha" class="form-control" placeholder="请输入验证码" maxlength="4" style="text-transform: uppercase;" required>
+          <input type="text" id="captcha" class="form-control" placeholder="请输入验证码" maxlength="4"
+                 style="text-transform: uppercase;" required>
           <div class="captcha-img" id="captchaCanvas" title="点击刷新验证码" onclick="refreshCaptcha()"></div>
         </div>
         <div class="form-error" id="captchaError"></div>
@@ -428,16 +98,21 @@
         <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px;">
           <input type="checkbox" id="rememberMe" style="width: 16px; height: 16px;"> 记住登录状态
         </label>
-        <a href="#" onclick="showToast('请联系超级管理员重置密码','warning'); return false;" style="font-size: 13px; color: #e67e22;">忘记密码?</a>
+        <a href="#" onclick="showToast('请联系管理员重置密码','warning'); return false;"
+           style="font-size: 13px; color: #e67e22;">忘记密码?</a>
       </div>
 
       <button type="submit" class="btn btn-primary btn-lg btn-block" id="loginBtn">
         🔓 登 录 系 统
       </button>
-      <div id="globalError" class="text-danger text-center mt-16" style="display:none; font-size:13px;"></div>
     </form>
 
     <div class="text-center mt-24" style="border-top:1px solid #ffe0a3; padding-top:16px;">
+      <div style="font-size:12px; color:#b96f0f; margin-bottom:8px; line-height:1.8;">
+        <strong>测试账号</strong><br>
+        管理员 admin / 123456<br>
+        学生 zhangsan / 1234 &nbsp; 教职工 wangwu / 1234
+      </div>
       <p style="font-size:12px; color:#b96f0f;">© 2026 校园一卡通中心 | 智慧后勤</p>
     </div>
   </div>
@@ -445,7 +120,6 @@
 
 <!-- 全屏食物漂浮容器 -->
 <div class="floating-container" id="floatingContainer"></div>
-
 <div class="toast-container" id="toastContainer"></div>
 
 <script>
@@ -455,9 +129,7 @@
   function generateCaptcha() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     let code = '';
-    for (let i = 0; i < 4; i++) {
-      code += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
+    for (let i = 0; i < 4; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
     return code;
   }
 
@@ -465,115 +137,70 @@
     currentCaptcha = generateCaptcha();
     const el = document.getElementById('captchaCanvas');
     const colors = ['#f39c12', '#e67e22', '#d35400', '#ffaa33', '#f1c40f'];
-    const color = colors[Math.floor(Math.random() * colors.length)];
-    el.style.color = color;
-    const rotate = (Math.random() - 0.5) * 6;
-    el.style.transform = `rotate(${rotate}deg)`;
+    el.style.color = colors[Math.floor(Math.random() * colors.length)];
+    el.style.transform = `rotate(${(Math.random() - 0.5) * 6}deg)`;
     el.textContent = currentCaptcha;
   }
-
   refreshCaptcha();
 
-  // ========== 表单校验 ==========
+  // ========== Spring Security 登录失败参数检测 ==========
+  (function() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('error')) {
+      const errBox = document.getElementById('loginErrorMsg');
+      errBox.classList.add('show');
+      if (params.get('error') === 'disabled') {
+        errBox.innerHTML = '❌ 该账号已被禁用，请联系管理员';
+      } else {
+        errBox.innerHTML = '❌ 用户名或密码错误，请重新输入';
+      }
+    }
+    if (params.has('logout')) {
+      showToast('您已安全退出系统', 'success');
+    }
+  })();
+
+  // ========== 前端表单校验 ==========
   function validateField(fieldId, errorId, rules) {
     const field = document.getElementById(fieldId);
     const error = document.getElementById(errorId);
     const value = field.value.trim();
-
-    if (rules.required && !value) {
-      showError(field, error, rules.requiredMsg || '此字段为必填项');
-      return false;
-    }
-    if (rules.minlength && value.length < rules.minlength) {
-      showError(field, error, `长度不能少于 ${rules.minlength} 个字符`);
-      return false;
-    }
+    if (rules.required && !value) { showError(field, error, rules.requiredMsg || '此字段为必填项'); return false; }
+    if (rules.minlength && value.length < rules.minlength) { showError(field, error, `长度不能少于 ${rules.minlength} 个字符`); return false; }
     clearError(field, error);
     return true;
   }
+  function showError(field, error, msg) { field.classList.add('error'); error.textContent = msg; error.classList.add('show'); }
+  function clearError(field, error) { field.classList.remove('error'); error.textContent = ''; error.classList.remove('show'); }
 
-  function showError(field, error, msg) {
-    field.classList.add('error');
-    error.textContent = msg;
-    error.classList.add('show');
-  }
-
-  function clearError(field, error) {
-    field.classList.remove('error');
-    error.textContent = '';
-    error.classList.remove('show');
-  }
-
-  function clearAllErrors() {
-    document.querySelectorAll('.form-control').forEach(el => el.classList.remove('error'));
-    document.querySelectorAll('.form-error').forEach(el => { el.textContent = ''; el.classList.remove('show'); });
-    const ge = document.getElementById('globalError');
-    if (ge) { ge.style.display = 'none'; ge.textContent = ''; }
-  }
-
-  document.getElementById('username').addEventListener('blur', function () {
-    validateField('username', 'usernameError', { required: true, requiredMsg: '请输入管理员账号', minlength: 2 });
-  });
-  document.getElementById('password').addEventListener('blur', function () {
-    validateField('password', 'passwordError', { required: true, requiredMsg: '请输入登录密码', minlength: 3 });
-  });
-  document.getElementById('captcha').addEventListener('blur', function () {
-    validateField('captcha', 'captchaError', { required: true, requiredMsg: '请输入验证码' });
-  });
-
-  document.addEventListener('keydown', function (e) {
-    if (e.key === 'Enter') handleLogin(e);
-  });
-
-  // ========== 登录处理 ==========
-  async function handleLogin(e) {
-    if (e) e.preventDefault();
-    clearAllErrors();
-
-    const username = document.getElementById('username').value.trim();
-    const password = document.getElementById('password').value.trim();
+  // 表单提交前拦截：验证码校验通过后，表单正常 POST 到 Spring Security
+  document.getElementById('loginForm').addEventListener('submit', function(e) {
     const captchaInput = document.getElementById('captcha').value.trim().toUpperCase();
-
     let valid = true;
-    valid = validateField('username', 'usernameError', { required: true, requiredMsg: '请输入管理员账号', minlength: 2 }) && valid;
+    valid = validateField('username', 'usernameError', { required: true, requiredMsg: '请输入登录账号', minlength: 2 }) && valid;
     valid = validateField('password', 'passwordError', { required: true, requiredMsg: '请输入登录密码', minlength: 3 }) && valid;
     valid = validateField('captcha', 'captchaError', { required: true, requiredMsg: '请输入验证码' }) && valid;
-
-    if (!valid) return false;
-
+    if (!valid) { e.preventDefault(); return; }
     if (captchaInput !== currentCaptcha) {
+      e.preventDefault();
       const captchaEl = document.getElementById('captcha');
       const errEl = document.getElementById('captchaError');
       showError(captchaEl, errEl, '验证码错误，请重新输入');
       refreshCaptcha();
       document.getElementById('captcha').value = '';
       document.getElementById('captcha').focus();
-      return false;
+      return;
     }
+    // 校验通过，表单正常提交
+  });
 
-    const btn = document.getElementById('loginBtn');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="loading-spinner"></span> 登录中...';
-
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1200));
-      if (username && password) {
-        showToast('登录成功，正在跳转...', 'success');
-        setTimeout(() => {
-          window.location.href = '/index';
-        }, 800);
-      } else {
-        throw new Error('用户名或密码不能为空');
-      }
-    } catch (err) {
-      showToast(err.message || '登录失败，请重试', 'error');
-      refreshCaptcha();
-      document.getElementById('captcha').value = '';
-      btn.disabled = false;
-      btn.innerHTML = '🔓 登 录 系 统';
-    }
-    return false;
-  }
+  // 输入框失焦实时校验
+  document.getElementById('username').addEventListener('blur', function () {
+    validateField('username', 'usernameError', { required: true, requiredMsg: '请输入登录账号', minlength: 2 });
+  });
+  document.getElementById('password').addEventListener('blur', function () {
+    validateField('password', 'passwordError', { required: true, requiredMsg: '请输入登录密码', minlength: 3 });
+  });
 
   // ========== Toast 提示 ==========
   function showToast(message, type) {
@@ -592,48 +219,77 @@
     }, 3000);
   }
 
-  // ========== 全屏食物漂浮效果 ==========
+  // ========== 全屏食物漂浮效果（优化版） ==========
+  // 加权随机：主食类概率更高，甜点水果类较低
+  const FOOD_WEIGHTED = [
+    {e:'🍚', w:3}, {e:'🍛', w:3}, {e:'🍜', w:3}, {e:'🍲', w:2}, {e:'🥟', w:2},
+    {e:'🍗', w:2}, {e:'🥗', w:2}, {e:'🍙', w:2}, {e:'🍘', w:1}, {e:'🍥', w:1},
+    {e:'🥛', w:2}, {e:'🍕', w:1}, {e:'🥨', w:1},
+    {e:'🍎', w:1}, {e:'🍉', w:1}, {e:'🍒', w:1}, {e:'🥝', w:1}, {e:'🥑', w:1},
+    {e:'🍰', w:1}, {e:'🍦', w:1}, {e:'🍪', w:1}, {e:'🍡', w:1},
+  ];
+  const _foodPool = FOOD_WEIGHTED.flatMap(f => Array(f.w).fill(f.e));
+  function pickFood() { return _foodPool[Math.floor(Math.random() * _foodPool.length)]; }
+
+  function createParticle() {
+    const particle = document.createElement('div');
+    particle.className = 'food-particle';
+    particle.textContent = pickFood();
+    particle.style.left = Math.random() * 100 + '%';
+    particle.style.bottom = Math.random() * 30 + 'px';  // 0~30px，无负值
+    // 景深分层：大粒子（近景）快且亮，小粒子（远景）慢且暗
+    const depth = Math.random();              // 0=远 1=近
+    const size = 20 + depth * 32;             // 20~52px
+    const maxOpacity = 0.4 + depth * 0.45;     // 0.4~0.85
+    const duration = 6 + (1 - depth) * 8;      // 近景6~8s，远景10~14s
+    const rotation = (Math.random() - 0.5) * 720;  // -360~360deg
+    particle.style.fontSize = size + 'px';
+    particle.style.setProperty('--max-opacity', maxOpacity.toFixed(2));
+    particle.style.setProperty('--rot', rotation + 'deg');
+    particle.style.animationDuration = duration + 's';
+    particle.style.animationDelay = Math.random() * 8 + 's';
+    return particle;
+  }
+
+  let _particleTarget = 0;
   function generateFullscreenFoods() {
     const container = document.getElementById('floatingContainer');
     if (!container) return;
     container.innerHTML = '';
-    const foods = ['🍚', '🍛', '🍜', '🍲', '🥟', '🍗', '🥗', '🍎', '🥛', '🍰', '🍉', '🍒', '🍕', '🥨', '🍙', '🍘', '🍥', '🍡', '🍦', '🍪', '🥝', '🥑'];
-    // 生成数量：根据屏幕宽度动态调整，避免过密或过疏（基准 50 个）
-    const particleCount = Math.min(70, Math.max(45, Math.floor(window.innerWidth / 25)));
-    for (let i = 0; i < particleCount; i++) {
-      const particle = document.createElement('div');
-      particle.className = 'food-particle';
-      particle.innerHTML = foods[Math.floor(Math.random() * foods.length)];
-      // 水平位置完全随机 0% ~ 100%
-      particle.style.left = Math.random() * 100 + '%';
-      // 起始垂直位置：从底部稍下方开始（-20px ~ 20px），部分可稍微露出
-      particle.style.bottom = (Math.random() * 60 - 20) + 'px';
-      // 随机大小 24px ~ 52px
-      const size = 24 + Math.random() * 28;
-      particle.style.fontSize = size + 'px';
-      // 动画时长 4s ~ 14s，有快有慢
-      particle.style.animationDuration = 4 + Math.random() * 10 + 's';
-      // 动画延迟 0s ~ 10s，实现错落起伏
-      particle.style.animationDelay = Math.random() * 10 + 's';
-      container.appendChild(particle);
+    _particleTarget = Math.min(55, Math.max(30, Math.floor(window.innerWidth / 30)));
+    for (let i = 0; i < _particleTarget; i++) {
+      container.appendChild(createParticle());
     }
   }
 
-  // 页面加载时生成一次，之后每隔 18 秒重新生成，保持动态活力
+  // 逐个替换：移除少量旧粒子 + 添加新粒子，避免全量重建闪烁
+  function refreshSomeParticles() {
+    const container = document.getElementById('floatingContainer');
+    if (!container) return;
+    const existing = container.querySelectorAll('.food-particle');
+    if (existing.length === 0) return;
+    // 随机移除 3~5 个旧粒子
+    const removeCount = 3 + Math.floor(Math.random() * 3);
+    const indices = new Set();
+    while (indices.size < Math.min(removeCount, existing.length)) {
+      indices.add(Math.floor(Math.random() * existing.length));
+    }
+    [...indices].forEach(i => existing[i].remove());
+    // 补充等量新粒子
+    for (let i = 0; i < removeCount; i++) {
+      container.appendChild(createParticle());
+    }
+  }
+
   window.addEventListener('load', () => {
     generateFullscreenFoods();
-    setInterval(() => {
-      generateFullscreenFoods();
-    }, 18000);
+    setInterval(refreshSomeParticles, 2500);  // 每 2.5s 微量替换，无闪烁
   });
 
-  // 当窗口大小改变时，重新调整粒子数量（但不强制全部刷新，可选优化）
   let resizeTimer;
   window.addEventListener('resize', () => {
     if (resizeTimer) clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(() => {
-      generateFullscreenFoods();
-    }, 300);
+    resizeTimer = setTimeout(generateFullscreenFoods, 300);
   });
 </script>
 </body>

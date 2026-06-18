@@ -3,6 +3,7 @@ package com.example.campus_mealcardsystem.controller;
 import com.example.campus_mealcardsystem.common.Result;
 import com.example.campus_mealcardsystem.service.BackupService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -17,6 +18,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/backup")
+@PreAuthorize("hasRole('ADMIN')")
 public class BackupController {
 
     @Autowired

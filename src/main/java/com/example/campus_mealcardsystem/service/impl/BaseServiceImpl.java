@@ -1,5 +1,6 @@
 package com.example.campus_mealcardsystem.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.campus_mealcardsystem.service.BaseService;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +27,11 @@ public abstract class BaseServiceImpl<T, M extends com.baomidou.mybatisplus.core
     @Override
     public T getById(Long id) {
         return super.getById(id);
+    }
+
+    @Override
+    public T getOne(Wrapper<T> queryWrapper) {
+        return super.getOne(queryWrapper);
     }
 
     @Override
